@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Film Zevkini Keşfet</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<main>
+
+<!-- 1. Temel bilgiler -->
+<section id="sInfo" class="narrow">
+  <h1>Film Zevkini Keşfet</h1>
+  <p>Film zevkine göre sana uygun insanları bulalım. Önce kısaca kendini tanıt.</p>
+  <div class="card">
+    <div class="grid2">
+      <div><label for="ad">Ad</label><input id="ad" autocomplete="given-name"></div>
+      <div><label for="soyad">Soyad</label><input id="soyad" autocomplete="family-name"></div>
+    </div>
+    <div class="grid2">
+      <div><label for="yas">Yaş</label><input id="yas" type="number" inputmode="numeric" min="18" max="99"></div>
+      <div><label for="cins">Cinsiyet</label><select id="cins"><option value="">Seç</option><option>Kadın</option><option>Erkek</option><option>Belirtmek istemiyorum</option></select></div>
+    </div>
+    <label for="sehir">Şehir</label><input id="sehir" autocomplete="address-level2">
+    <div class="err" id="e1"></div>
+    <div class="row"><button class="pri" id="go1">Filmlere başla</button></div>
+  </div>
+</section>
+
+<!-- 2. Film oylama -->
+<section id="sVote" class="hide narrow">
+  <div class="top"><span class="cnt" id="cnt"></span><button id="exit" class="hide">Çık</button></div>
+  <div class="bar"><i id="prog"></i></div>
+  <div id="poster"></div>
+  <div class="meta"><div class="t" id="ft"></div><div class="s" id="fs"></div><p id="fd"></p></div>
+  <div class="rate" id="rate"></div>
+  <button class="skip" id="skip">İzlemedim</button>
+  <div class="nav"><button id="prev">← Geri</button><button id="next">İleri →</button></div>
+  <div class="row hide" id="updRow"><button class="pri" id="upd">Eşleşmeleri güncelle</button></div>
+</section>
+
+<!-- 3. E-posta ile giriş -->
+<section id="sLogin" class="hide narrow">
+  <h1>Eşleşmelerin hazır 🎬</h1>
+  <p>10 filmi oyladın. Sana önerilen kişileri görmek için e-posta ile giriş yap. Az önce girdiğin bilgiler profilin olacak.</p>
+  <div class="card">
+    <div id="l1"><label for="mail">E-posta</label><input id="mail" type="email" autocomplete="email" placeholder="ornek@mail.com">
+      <div class="err" id="e2"></div><div class="row"><button class="pri" id="sendCode">Kod gönder</button></div></div>
+    <div id="l2" class="hide"><label for="code">E-postana gelen 6 haneli kod</label><input id="code" inputmode="numeric" maxlength="6" placeholder="123456">
+      <div class="err" id="e3"></div><div class="row"><button id="back1">Geri</button><button class="pri" id="verify">Giriş yap</button></div></div>
+    <div class="note">Şimdilik temsili: herhangi bir 6 haneli kod kabul edilir. Gerçek giriş Supabase Auth ile bağlanacak.</div>
+  </div>
+</section>
+
+<!-- 4. Eşleşme sayfası -->
+<section id="sApp" class="hide">
+  <div class="top"><div><h1 id="hello"></h1></div><button class="pri" id="more">Film oylamaya devam et</button></div>
+  <div class="tabs" id="tabs"></div>
+  <div id="list"></div>
+</section>
+
+<!-- 5. Sohbet -->
+<section id="sChat" class="hide narrow">
+  <div class="top"><h2 id="chatTitle"></h2><button id="chatBack">← Eşleşmeler</button></div>
+  <div class="card" style="padding:0;margin-top:10px"><div id="chatBox"></div></div>
+  <div class="row"><input id="chatIn" placeholder="Mesaj yaz..." maxlength="500"><button class="pri" id="chatSend" style="flex:none">Gönder</button></div>
+</section>
+</main>
+<div id="toast"></div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
