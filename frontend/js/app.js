@@ -2,7 +2,21 @@
 const $=id=>document.getElementById(id);
 const hr=(a,b)=>{const x=Math.sin(a*127.1+b*311.7)*43758.5453;return x-Math.floor(x)};
 const candRate=(c,f)=>{if(hr(c,f)<.35)return 0;const q=1+hr(f,7)*4;return Math.max(1,Math.min(5,Math.round(q+(hr(c,f+50)-.5)*3)))};
-const S={p:null,order:[],pos:0,rt:{},mode:"onb",page:"matches",tab:"adaylar",act:{},msgs:{},scores:{},chat:null};
+const S = {
+    p: null,
+    order: [],
+    pos: 0,
+    rt: {},
+    mode: "onb",
+    page: "matches",
+    tab: "adaylar",
+    act: {},
+    msgs: {},
+    scores: {},
+    chat: null
+};
+
+let onboardingInProgress = false;
 
 // Load movies before starting the app
 async function initializeMovies() {
@@ -182,48 +196,99 @@ function renderFilm() {
 let selectedRating = null;
 // Kullanıcı puan seçtiğinde sadece işaretle
 function vote(v) {
+    if (onboardingInProgress) return;
+
     selectedRating = v;
+
     $("rate").querySelectorAll("button").forEach(button => {
         button.classList.toggle(
             "sel",
             Number(button.dataset.v) === v
         );
     });
+
     $("skip").classList.toggle("sel", v === 0);
 }
 
-// 1-5 arası puanlama
+// 1-5 arası puan seçimi
 $("rate").onclick = e => {
     const button = e.target.closest("button");
+
     if (button) {
         vote(Number(button.dataset.v));
     }
 };
-// İzlemedim butonu
+
+// İzlemedim
 $("skip").onclick = () => {
     vote(0);
 };
-// Geri butonu
+
+// Önceki film
 $("prev").onclick = () => {
+    if (onboardingInProgress) return;
+
     if (S.pos > 0) {
         S.pos--;
         renderFilm();
     }
 };
-// İleri butonu
-$("next").onclick = () => {
+
+// Puanı kaydet ve sonraki filme geç
+$("next").onclick = async () => {
+    if (onboardingInProgress) return;
+
     if (selectedRating === null) {
         toast("Önce bir puan seç veya İzlemedim'e bas.");
         return;
     }
-    // Seçilen puanı kaydet
+
     S.rt[S.order[S.pos]] = selectedRating;
-    // İlk 10 film tamamlandıysa giriş ekranına geç
+
+    // İlk 10 film tamamlandı
     if (S.mode === "onb" && rated() >= 10) {
+        onboardingInProgress = true;
         savePendingOnboarding();
-        show("sLogin");
+
+        try {
+            const { data, error } =
+                await supabaseClient.auth.getUser();
+
+            // Kullanıcı giriş yapmamışsa
+            if (error || !data?.user) {
+                show("sLogin");
+                return;
+            }
+
+            // Giriş yapmışsa Supabase'e kaydet
+            await submitOnboarding();
+
+            if (localStorage.getItem("filmBuddyPendingOnboarding")) {
+                console.error("Onboarding save failed.");
+                toast("Profil kaydedilemedi.");
+                return;
+            }
+
+            S.mode = "more";
+            S.tab = "adaylar";
+
+            calc();
+            show("sApp");
+            changeMainPage("matches");
+
+            console.log("Onboarding completed!");
+
+        } catch (error) {
+            console.error("Onboarding failed:", error);
+            toast("Kayıt sırasında hata oluştu.");
+
+        } finally {
+            onboardingInProgress = false;
+        }
+
         return;
     }
+
     // Sonraki filme geç
     if (S.pos < S.order.length - 1) {
         S.pos++;
@@ -246,6 +311,7 @@ $("upd").onclick = () => {
     changeMainPage("matches");
     toast("Eşleşmeler güncellendi");
 };
+
 
 // Start Google OAuth
 async function startGoogleLogin(button) {
