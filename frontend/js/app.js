@@ -3,6 +3,8 @@ const $=id=>document.getElementById(id);
 const hr=(a,b)=>{const x=Math.sin(a*127.1+b*311.7)*43758.5453;return x-Math.floor(x)};
 const candRate=(c,f)=>{if(hr(c,f)<.35)return 0;const q=1+hr(f,7)*4;return Math.max(1,Math.min(5,Math.round(q+(hr(c,f+50)-.5)*3)))};
 const S={p:null,order:[],pos:0,rt:{},mode:"onb",tab:"adaylar",act:{},msgs:{},scores:{},chat:null};
+// Prevent duplicate onboarding requests
+let onboardingInProgress = false;
 
 // Load movies before starting the app
 async function initializeMovies() {
@@ -153,51 +155,62 @@ function renderFilm(){
 }
 
 function vote(v) {
+  if (onboardingInProgress) return;
+
   S.rt[S.order[S.pos]] = v;
 
   // Save data when 10 movies are rated
-  
-if (S.mode === "onb" && rated() >= 10) {
-  savePendingOnboarding();
+  if (S.mode === "onb" && rated() >= 10) {
+    onboardingInProgress = true;
+    savePendingOnboarding();
 
-  // Check if the user is already signed in
-  supabaseClient.auth.getUser().then(async ({ data, error }) => {
-    if (error || !data.user) {
-      show("sLogin");
-      return;
-    }
+    // Check the current user
+    (async () => {
+      try {
+        const { data, error } =
+          await supabaseClient.auth.getUser();
 
-    // Save onboarding for the signed-in user
-    await submitOnboarding();
+        if (error || !data.user) {
+          show("sLogin");
+          return;
+        }
 
-    if (localStorage.getItem("filmBuddyPendingOnboarding")) {
-      console.error("Onboarding save failed.");
-      toast("Profil kaydedilemedi.");
-      return;
-    }
+        // Save onboarding data
+        await submitOnboarding();
 
-    S.mode = "more";
-    S.tab = "adaylar";
+        if (localStorage.getItem("filmBuddyPendingOnboarding")) {
+          console.error("Onboarding save failed.");
+          toast("Profil kaydedilemedi.");
+          return;
+        }
 
-    calc();
-    show("sApp");
-    renderApp();
+        S.mode = "more";
+        S.tab = "adaylar";
 
-    console.log("Onboarding completed!");
-  });
+        calc();
+        show("sApp");
+        renderApp();
 
-  return;
-}
+        console.log("Onboarding completed!");
+      } catch (error) {
+        console.error("Onboarding failed:", error);
+        toast("Kayıt sırasında hata oluştu.");
+      } finally {
+        onboardingInProgress = false;
+      }
+    })();
 
+    return;
+  }
 
   if (S.pos < S.order.length - 1) {
     S.pos++;
   } else {
     toast("Tüm filmleri oyladın");
   }
-
   renderFilm();
 }
+
 
 $("rate").onclick=e=>{const b=e.target.closest("button");if(b)vote(+b.dataset.v)};
 $("skip").onclick=()=>vote(0);
