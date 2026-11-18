@@ -10,17 +10,26 @@
 <body>
 <main>
 
-  <!-- 1. Temel bilgiler -->
+  <!-- Temel bilgiler -->
   <section id="sInfo" class="hide narrow">
     <h1>Film Zevkini Keşfet</h1>
     <p>Film zevkine göre sana uygun insanları bulalım. Önce kısaca kendini tanıt.</p>
     <div class="card">
       <div class="grid2">
-        <div><label for="ad">Ad</label><input id="ad" autocomplete="given-name"></div>
-        <div><label for="soyad">Soyad</label><input id="soyad" autocomplete="family-name"></div>
+        <div>
+          <label for="ad">Ad</label>
+          <input id="ad" autocomplete="given-name">
+        </div>
+        <div>
+          <label for="soyad">Soyad</label>
+          <input id="soyad" autocomplete="family-name">
+        </div>
       </div>
       <div class="grid2">
-        <div><label for="yas">Yaş</label><input id="yas" type="number" inputmode="numeric" min="18" max="99"></div>
+        <div>
+          <label for="yas">Yaş</label>
+          <input id="yas" type="number" min="18" max="99">
+        </div>
         <div>
           <label for="cins">Cinsiyet</label>
           <select id="cins">
@@ -38,12 +47,14 @@
         <button class="pri" id="go1">Filmlere başla</button>
       </div>
       <div class="row">
-        <button id="existingLogin">Zaten hesabım var — Google ile Giriş Yap</button>
+        <button id="existingLogin">
+          Zaten hesabım var — Google ile Giriş Yap
+        </button>
       </div>
     </div>
   </section>
 
-  <!-- 2. Film oylama -->
+  <!-- Film oylama -->
   <section id="sVote" class="hide narrow">
     <div class="top">
       <span class="cnt" id="cnt"></span>
@@ -67,11 +78,11 @@
     </div>
   </section>
 
-  <!-- 3. Google girişi -->
+  <!-- Google girişi -->
   <section id="sLogin" class="hide narrow">
     <h1>Eşleşmelerin hazır 🎬</h1>
     <p>
-      10 filmi oyladın! Şimdi Google hesabınla giriş yaparak
+      10 filmi oyladın! Google hesabınla giriş yaparak
       sana uygun kişileri keşfet.
     </p>
     <div class="card">
@@ -91,7 +102,7 @@
     </div>
   </section>
 
-  <!-- 4. Giriş sonrası ana sayfalar -->
+  <!-- Uygulama -->
   <section id="sApp" class="hide">
     <div class="top app-header">
       <div>
@@ -105,11 +116,18 @@
     </div>
 
     <nav class="main-menu" aria-label="Ana menü">
-      <button id="menuMatches" class="active" type="button">💜 Eşleşmelerim</button>
-      <button id="menuVotes" type="button">⭐ Oylamalarım</button>
-      <button id="menuProfile" type="button">👤 Profilim</button>
+      <button id="menuMatches" class="active" type="button">
+        💜 Eşleşmelerim
+      </button>
+      <button id="menuVotes" type="button">
+        ⭐ Oylamalarım
+      </button>
+      <button id="menuProfile" type="button">
+        👤 Profilim
+      </button>
     </nav>
 
+    <!-- Eşleşmelerim -->
     <div id="pageMatches">
       <h2>💜 Eşleşmelerim</h2>
       <p>Film zevkine uygun kişileri keşfet.</p>
@@ -117,6 +135,7 @@
       <div id="list"></div>
     </div>
 
+    <!-- Oylamalarım -->
     <div id="pageVotes" class="hide">
       <div class="top">
         <div>
@@ -125,52 +144,119 @@
         </div>
         <button class="pri" id="voteMore">+ Film Oyla</button>
       </div>
+
+      <div class="vote-tools">
+        <div>
+          <label for="voteFilter">Puana göre filtrele</label>
+          <select id="voteFilter">
+            <option value="all">Tüm puanlar</option>
+            <option value="5">5 yıldız</option>
+            <option value="4">4 yıldız</option>
+            <option value="3">3 yıldız</option>
+            <option value="2">2 yıldız</option>
+            <option value="1">1 yıldız</option>
+          </select>
+        </div>
+        <div>
+          <label for="voteSort">Sıralama</label>
+          <select id="voteSort">
+            <option value="default">Varsayılan sıra</option>
+            <option value="high">En yüksek puan</option>
+            <option value="low">En düşük puan</option>
+            <option value="az">Film adı A–Z</option>
+            <option value="za">Film adı Z–A</option>
+          </select>
+        </div>
+      </div>
       <div id="voteHistory"></div>
     </div>
 
+    <!-- Profilim -->
     <div id="pageProfile" class="hide">
-      <div class="card profile-card">
+      <div class="profile-dashboard">
         <h2>👤 Profilim</h2>
-        <p>Kişisel bilgilerini güncelleyebilirsin.</p>
+        <p>Film zevkin, favorilerin ve kişisel bilgilerin.</p>
 
-        <div class="grid2">
-          <div>
-            <label for="profileName">Ad</label>
-            <input id="profileName">
+        <!-- İstatistikler -->
+        <div class="profile-stats">
+          <div class="profile-average card">
+            <h3>Ortalama puanım</h3>
+            <div id="profileAverage" class="average-number">—</div>
+            <div class="average-stars">★★★★★</div>
           </div>
-          <div>
-            <label for="profileSurname">Soyad</label>
-            <input id="profileSurname">
-          </div>
-        </div>
-
-        <div class="grid2">
-          <div>
-            <label for="profileAge">Yaş</label>
-            <input id="profileAge" type="number" min="18" max="99">
-          </div>
-          <div>
-            <label for="profileGender">Cinsiyet</label>
-            <select id="profileGender">
-              <option>Kadın</option>
-              <option>Erkek</option>
-              <option>Belirtmek istemiyorum</option>
-            </select>
+          <div class="profile-distribution card">
+            <h3>⭐ Yıldız dağılımım</h3>
+            <div id="profileChart"></div>
           </div>
         </div>
 
-        <label for="profileCity">Şehir</label>
-        <input id="profileCity">
+        <!-- Favori dört film -->
+        <div class="favorites-area">
+          <div class="favorite-heading">
+            <h3>❤️ Favori 4 filmim</h3>
+            <span id="favoriteCount">0 / 4 seçildi</span>
+          </div>
+          <p>
+            Puan verdiğin filmleri seçebilirsin.
+            Kaldırmak için ×, eklemek için + kullan.
+          </p>
+          <div id="favoriteGrid" class="favorite-grid"></div>
+          <p id="favoriteNote" class="note">
+            Favoriler bu tarayıcıda hesabına özel saklanır.
+          </p>
+        </div>
 
-        <div class="err" id="profileError"></div>
-        <div class="row">
-          <button class="pri" id="saveProfile">💾 Değişiklikleri Kaydet</button>
+        <!-- Kullanıcı bilgileri -->
+        <div class="card profile-card">
+          <div class="profile-info-head">
+            <h3>👤 Kişisel bilgilerim</h3>
+            <button type="button" class="pri" id="editProfile">
+              ✏️ Bilgilerimi düzenle
+            </button>
+          </div>
+
+          <div class="grid2">
+            <div>
+              <label for="profileName">Ad</label>
+              <input id="profileName">
+            </div>
+            <div>
+              <label for="profileSurname">Soyad</label>
+              <input id="profileSurname">
+            </div>
+          </div>
+
+          <div class="grid2">
+            <div>
+              <label for="profileAge">Yaş</label>
+              <input id="profileAge" type="number" min="18" max="99">
+            </div>
+            <div>
+              <label for="profileGender">Cinsiyet</label>
+              <select id="profileGender">
+                <option>Kadın</option>
+                <option>Erkek</option>
+                <option>Belirtmek istemiyorum</option>
+              </select>
+            </div>
+          </div>
+
+          <label for="profileCity">Şehir</label>
+          <input id="profileCity">
+
+          <div class="err" id="profileError"></div>
+          <div class="row hide" id="profileEditActions">
+            <button type="button" id="cancelProfile">Vazgeç</button>
+            <button class="pri" id="saveProfile">
+              💾 Değişiklikleri Kaydet
+            </button>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Film puanı düzenleme penceresi -->
+  <!-- Film puanı düzenleme modalı -->
   <div id="ratingModal" class="rating-modal hide"
        role="dialog" aria-modal="true"
        aria-labelledby="ratingModalTitle">
@@ -200,13 +286,43 @@
 
       <div class="rating-actions">
         <button id="ratingCancel" type="button">Vazgeç</button>
-        <button id="ratingSave" class="pri"
-                type="button">Puanı Güncelle</button>
+        <button id="ratingSave" class="pri" type="button">
+          Puanı Güncelle
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- 5. Sohbet -->
+  <!-- Favori film seçme modalı -->
+  <div id="favoriteModal" class="rating-modal hide"
+       role="dialog" aria-modal="true"
+       aria-labelledby="favoriteModalTitle">
+
+    <div class="rating-backdrop" id="favoriteBackdrop"></div>
+
+    <div class="favorite-dialog rating-dialog" tabindex="-1">
+      <div class="favorite-modal-head">
+        <h2 id="favoriteModalTitle">Favori film seç</h2>
+        <button type="button" id="favoriteClose"
+                aria-label="Kapat">×</button>
+      </div>
+      <p>Puanladığın filmlerden birini seç.</p>
+        <div class="favorite-search-box">
+            <input
+            type="search"
+            id="favoriteSearch"
+            placeholder="Film adı yaz... (örn. Interstellar)"
+            autocomplete="off"
+            aria-label="Favori film ara"
+            >
+        </div>
+      <div class="favorite-picker" id="favoritePicker"></div>
+      <button type="button" id="favoriteCancel"
+              class="favorite-cancel">Vazgeç</button>
+    </div>
+  </div>
+
+  <!-- Sohbet -->
   <section id="sChat" class="hide narrow">
     <div class="top">
       <h2 id="chatTitle"></h2>
@@ -217,7 +333,9 @@
     </div>
     <div class="row">
       <input id="chatIn" placeholder="Mesaj yaz..." maxlength="500">
-      <button class="pri" id="chatSend" style="flex:none">Gönder</button>
+      <button class="pri" id="chatSend" style="flex:none">
+        Gönder
+      </button>
     </div>
   </section>
 
