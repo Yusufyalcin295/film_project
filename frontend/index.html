@@ -1,123 +1,234 @@
+
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Film Zevkini Keşfet</title>
-<link rel="stylesheet" href="css/style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Film Zevkini Keşfet</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <main>
 
-<!-- 1. Temel bilgiler -->
-<section id="sInfo" class="hide narrow">
-  <h1>Film Zevkini Keşfet</h1>
-  <p>Film zevkine göre sana uygun insanları bulalım. Önce kısaca kendini tanıt.</p>
-  <div class="card">
-    <div class="grid2">
-      <div><label for="ad">Ad</label><input id="ad" autocomplete="given-name"></div>
-      <div><label for="soyad">Soyad</label><input id="soyad" autocomplete="family-name"></div>
-    </div>
-    <div class="grid2">
-      <div><label for="yas">Yaş</label><input id="yas" type="number" inputmode="numeric" min="18" max="99"></div>
-      <div><label for="cins">Cinsiyet</label><select id="cins"><option value="">Seç</option><option>Kadın</option><option>Erkek</option><option>Belirtmek istemiyorum</option></select></div>
-    </div>
-    <label for="sehir">Şehir</label><input id="sehir" autocomplete="address-level2">
-    <div class="err" id="e1"></div>
-    <div class="row"><button class="pri" id="go1">Filmlere başla</button></div>
-
-<!-- Sign in for existing users -->
+  <!-- 1. Temel bilgiler -->
+  <section id="sInfo" class="hide narrow">
+    <h1>Film Zevkini Keşfet</h1>
+    <p>Film zevkine göre sana uygun insanları bulalım. Önce kısaca kendini tanıt.</p>
+    <div class="card">
+      <div class="grid2">
+        <div><label for="ad">Ad</label><input id="ad" autocomplete="given-name"></div>
+        <div><label for="soyad">Soyad</label><input id="soyad" autocomplete="family-name"></div>
+      </div>
+      <div class="grid2">
+        <div><label for="yas">Yaş</label><input id="yas" type="number" inputmode="numeric" min="18" max="99"></div>
+        <div>
+          <label for="cins">Cinsiyet</label>
+          <select id="cins">
+            <option value="">Seç</option>
+            <option>Kadın</option>
+            <option>Erkek</option>
+            <option>Belirtmek istemiyorum</option>
+          </select>
+        </div>
+      </div>
+      <label for="sehir">Şehir</label>
+      <input id="sehir" autocomplete="address-level2">
+      <div class="err" id="e1"></div>
       <div class="row">
-        <button id="existingLogin">
-          Zaten hesabım var — Google ile Giriş Yap
-        </button>
+        <button class="pri" id="go1">Filmlere başla</button>
+      </div>
+      <div class="row">
+        <button id="existingLogin">Zaten hesabım var — Google ile Giriş Yap</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Film oylama -->
+  <section id="sVote" class="hide narrow">
+    <div class="top">
+      <span class="cnt" id="cnt"></span>
+      <button id="exit" class="hide">Çık</button>
+    </div>
+    <div class="bar"><i id="prog"></i></div>
+    <div id="poster"></div>
+    <div class="meta">
+      <div class="t" id="ft"></div>
+      <div class="s" id="fs"></div>
+      <p id="fd"></p>
+    </div>
+    <div class="rate" id="rate"></div>
+    <button class="skip" id="skip">İzlemedim</button>
+    <div class="nav">
+      <button id="prev">← Geri</button>
+      <button id="next">İleri →</button>
+    </div>
+    <div class="row hide" id="updRow">
+      <button class="pri" id="upd">Eşleşmeleri güncelle</button>
+    </div>
+  </section>
+
+  <!-- 3. Google girişi -->
+  <section id="sLogin" class="hide narrow">
+    <h1>Eşleşmelerin hazır 🎬</h1>
+    <p>
+      10 filmi oyladın! Şimdi Google hesabınla giriş yaparak
+      sana uygun kişileri keşfet.
+    </p>
+    <div class="card">
+      <button type="button" id="googleLogin" class="google-btn">
+        <svg width="22" height="22" viewBox="0 0 48 48" aria-hidden="true">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.25 5.48-4.76 7.18l7.73 6C44.42 38.03 46.98 31.88 46.98 24.55z"/>
+          <path fill="#FBBC05" d="M10.53 28.59A14.41 14.41 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.2A23.88 23.88 0 0 0 0 24c0 3.87.93 7.51 2.56 10.78l7.97-6.19z"/>
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.91-5.8l-7.73-6c-2.15 1.45-4.92 2.3-8.18 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.97 6.19C6.51 42.62 14.62 48 24 48z"/>
+        </svg>
+        <span>Google ile Devam Et</span>
+      </button>
+      <p class="login-note">
+        Google hesabınla güvenli şekilde giriş yap.
+        Film puanların ve profilin kaydedilsin.
+      </p>
+    </div>
+  </section>
+
+  <!-- 4. Giriş sonrası ana sayfalar -->
+  <section id="sApp" class="hide">
+    <div class="top app-header">
+      <div>
+        <h1>🎬 Film<span class="brand">Match</span></h1>
+        <p id="hello"></p>
+      </div>
+      <div class="app-actions">
+        <button class="pri" id="more">🎞 Film oylamaya devam et</button>
+        <button id="logout">Çıkış Yap</button>
+      </div>
+    </div>
+
+    <nav class="main-menu" aria-label="Ana menü">
+      <button id="menuMatches" class="active" type="button">💜 Eşleşmelerim</button>
+      <button id="menuVotes" type="button">⭐ Oylamalarım</button>
+      <button id="menuProfile" type="button">👤 Profilim</button>
+    </nav>
+
+    <div id="pageMatches">
+      <h2>💜 Eşleşmelerim</h2>
+      <p>Film zevkine uygun kişileri keşfet.</p>
+      <div class="tabs" id="tabs"></div>
+      <div id="list"></div>
+    </div>
+
+    <div id="pageVotes" class="hide">
+      <div class="top">
+        <div>
+          <h2>⭐ Oylamalarım</h2>
+          <p id="voteSummary">Puanladığın filmler</p>
+        </div>
+        <button class="pri" id="voteMore">+ Film Oyla</button>
+      </div>
+      <div id="voteHistory"></div>
+    </div>
+
+    <div id="pageProfile" class="hide">
+      <div class="card profile-card">
+        <h2>👤 Profilim</h2>
+        <p>Kişisel bilgilerini güncelleyebilirsin.</p>
+
+        <div class="grid2">
+          <div>
+            <label for="profileName">Ad</label>
+            <input id="profileName">
+          </div>
+          <div>
+            <label for="profileSurname">Soyad</label>
+            <input id="profileSurname">
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div>
+            <label for="profileAge">Yaş</label>
+            <input id="profileAge" type="number" min="18" max="99">
+          </div>
+          <div>
+            <label for="profileGender">Cinsiyet</label>
+            <select id="profileGender">
+              <option>Kadın</option>
+              <option>Erkek</option>
+              <option>Belirtmek istemiyorum</option>
+            </select>
+          </div>
+        </div>
+
+        <label for="profileCity">Şehir</label>
+        <input id="profileCity">
+
+        <div class="err" id="profileError"></div>
+        <div class="row">
+          <button class="pri" id="saveProfile">💾 Değişiklikleri Kaydet</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Film puanı düzenleme penceresi -->
+  <div id="ratingModal" class="rating-modal hide"
+       role="dialog" aria-modal="true"
+       aria-labelledby="ratingModalTitle">
+
+    <div class="rating-backdrop" id="ratingBackdrop"></div>
+
+    <div class="rating-dialog" tabindex="-1">
+      <button id="ratingClose" class="rating-close"
+              type="button" aria-label="Kapat">×</button>
+
+      <div class="rating-film">
+        <div id="ratingPoster" class="rating-poster"></div>
+        <div class="rating-film-info">
+          <h2 id="ratingModalTitle"></h2>
+          <p id="ratingModalMeta"></p>
+          <p id="ratingCurrent"></p>
+        </div>
       </div>
 
+      <p class="rating-question">Yeni puanını seç</p>
+      <div id="ratingChoices" class="rating-choices"></div>
+
+      <button id="ratingNotWatched" class="rating-unwatched"
+              type="button">İzlemedim</button>
+
+      <p id="ratingError" class="rating-error" role="alert"></p>
+
+      <div class="rating-actions">
+        <button id="ratingCancel" type="button">Vazgeç</button>
+        <button id="ratingSave" class="pri"
+                type="button">Puanı Güncelle</button>
+      </div>
+    </div>
   </div>
-</section>
 
-<!-- 2. Film oylama -->
-<section id="sVote" class="hide narrow">
-  <div class="top"><span class="cnt" id="cnt"></span><button id="exit" class="hide">Çık</button></div>
-  <div class="bar"><i id="prog"></i></div>
-  <div id="poster"></div>
-  <div class="meta"><div class="t" id="ft"></div><div class="s" id="fs"></div><p id="fd"></p></div>
-  <div class="rate" id="rate"></div>
-  <button class="skip" id="skip">İzlemedim</button>
-  <div class="nav"><button id="prev">← Geri</button><button id="next">İleri →</button></div>
-  <div class="row hide" id="updRow"><button class="pri" id="upd">Eşleşmeleri güncelle</button></div>
-</section>
+  <!-- 5. Sohbet -->
+  <section id="sChat" class="hide narrow">
+    <div class="top">
+      <h2 id="chatTitle"></h2>
+      <button id="chatBack">← Eşleşmeler</button>
+    </div>
+    <div class="card" style="padding:0;margin-top:10px">
+      <div id="chatBox"></div>
+    </div>
+    <div class="row">
+      <input id="chatIn" placeholder="Mesaj yaz..." maxlength="500">
+      <button class="pri" id="chatSend" style="flex:none">Gönder</button>
+    </div>
+  </section>
 
-
-<!-- 3. Google sign in -->
-<section id="sLogin" class="hide narrow">
-  <h1>Eşleşmelerin hazır 🎬</h1>
-  <p>
-    10 filmi oyladın! Şimdi Google hesabınla giriş yaparak
-    sana uygun kişileri keşfet.
-  </p>
-
-  <div class="card">
-    <button
-      type="button"
-      id="googleLogin"
-      class="google-btn"
-    >
-      <svg width="22" height="22" viewBox="0 0 48 48" aria-hidden="true">
-        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.25 5.48-4.76 7.18l7.73 6C44.42 38.03 46.98 31.88 46.98 24.55z"/>
-        <path fill="#FBBC05" d="M10.53 28.59A14.41 14.41 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.2A23.88 23.88 0 0 0 0 24c0 3.87.93 7.51 2.56 10.78l7.97-6.19z"/>
-        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.91-5.8l-7.73-6c-2.15 1.45-4.92 2.3-8.18 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.97 6.19C6.51 42.62 14.62 48 24 48z"/>
-      </svg>
-      <span>Google ile Devam Et</span>
-    </button>
-
-    <p class="login-note">
-      Google hesabınla güvenli şekilde giriş yap.
-      Film puanların ve profilin kaydedilsin.
-    </p>
-  </div>
-</section>
-
-<!-- 4. Giriş sonrası üç ana sayfa -->
-<section id="sApp" class="hide">
-  <div class="top app-header">
-    <div><h1>🎬 Film<span class="brand">Match</span></h1><p id="hello"></p></div>
-    <div class="app-actions"><button class="pri" id="more">🎞 Film oylamaya devam et</button><button id="logout">Çıkış Yap</button></div>
-  </div>
-  <nav class="main-menu" aria-label="Ana menü">
-    <button id="menuMatches" class="active" type="button">💜 Eşleşmelerim</button>
-    <button id="menuVotes" type="button">⭐ Oylamalarım</button>
-    <button id="menuProfile" type="button">👤 Profilim</button>
-  </nav>
-  <div id="pageMatches"><h2>💜 Eşleşmelerim</h2><p>Film zevkine uygun kişileri keşfet.</p><div class="tabs" id="tabs"></div><div id="list"></div></div>
-  <div id="pageVotes" class="hide"><div class="top"><div><h2>⭐ Oylamalarım</h2><p id="voteSummary">Puanladığın filmler</p></div><button class="pri" id="voteMore">+ Film Oyla</button></div><div id="voteHistory"></div></div>
-  <div id="pageProfile" class="hide"><div class="card profile-card"><h2>👤 Profilim</h2><p>Kişisel bilgilerini güncelleyebilirsin.</p>
-    <div class="grid2"><div><label for="profileName">Ad</label><input id="profileName"></div><div><label for="profileSurname">Soyad</label><input id="profileSurname"></div></div>
-    <div class="grid2"><div><label for="profileAge">Yaş</label><input id="profileAge" type="number" min="18" max="99"></div><div><label for="profileGender">Cinsiyet</label><select id="profileGender"><option>Kadın</option><option>Erkek</option><option>Belirtmek istemiyorum</option></select></div></div>
-    <label for="profileCity">Şehir</label><input id="profileCity">
-    <label for="profileEmail">Google hesabı e-postası</label><input id="profileEmail" type="email" disabled>
-    <div class="err" id="profileError"></div><div class="row"><button class="pri" id="saveProfile">💾 Değişiklikleri Kaydet</button></div>
-  </div></div>
-</section>
-
-<!-- 5. Sohbet -->
-<section id="sChat" class="hide narrow">
-  <div class="top"><h2 id="chatTitle"></h2><button id="chatBack">← Eşleşmeler</button></div>
-  <div class="card" style="padding:0;margin-top:10px"><div id="chatBox"></div></div>
-  <div class="row"><input id="chatIn" placeholder="Mesaj yaz..." maxlength="500"><button class="pri" id="chatSend" style="flex:none">Gönder</button></div>
-</section>
 </main>
+
 <div id="toast"></div>
 
-
-<!-- Load Supabase library -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<!-- Initialize Supabase client -->
 <script src="js/supabaseClient.js"></script>
-
 <script src="js/data.js"></script>
 <script src="js/app.js"></script>
+
 </body>
 </html>
