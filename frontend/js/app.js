@@ -3,12 +3,116 @@ const $=id=>document.getElementById(id);
 const hr=(a,b)=>{const x=Math.sin(a*127.1+b*311.7)*43758.5453;return x-Math.floor(x)};
 const candRate=(c,f)=>{if(hr(c,f)<.35)return 0;const q=1+hr(f,7)*4;return Math.max(1,Math.min(5,Math.round(q+(hr(c,f+50)-.5)*3)))};
 const S={p:null,order:[],pos:0,rt:{},mode:"onb",tab:"adaylar",act:{},msgs:{},scores:{},chat:null};
-S.order=FILMS.map(f=>f.id).sort(()=>Math.random()-.5);
+
+// Load movies before starting the app
+async function initializeMovies() {
+  const success = await loadMovies();
+
+  if (!success || FILMS.length === 0) {
+    console.error("Movies could not be loaded.");
+    return;
+  }
+
+  S.order = FILMS.map(f => f.id);
+
+  // Start with the first movie
+  S.pos = 0;
+}
+
+initializeMovies();
 
 const SECS=["sInfo","sVote","sLogin","sApp","sChat"];
 const show=id=>{SECS.forEach(s=>$(s).classList.toggle("hide",s!==id));window.scrollTo(0,0)};
 function toast(t){const e=$("toast");e.textContent=t;e.style.opacity=1;setTimeout(()=>e.style.opacity=0,2200)}
 const rated=()=>Object.values(S.rt).filter(v=>v>0).length;
+
+// Save onboarding data before email login
+function savePendingOnboarding() {
+  if (!S.p || rated() < 10) return;
+
+  const pending = {
+    profile: S.p,
+    ratings: S.rt
+  };
+
+  localStorage.setItem(
+    "filmBuddyPendingOnboarding",
+    JSON.stringify(pending)
+  );
+}
+
+
+// Convert local onboarding data to backend format
+function prepareOnboardingData() {
+  const saved = localStorage.getItem("filmBuddyPendingOnboarding");
+
+  if (!saved) return null;
+
+  const pending = JSON.parse(saved);
+  const p = pending.profile;
+
+  return {
+    profile: {
+      first_name: p.ad,
+      last_name: p.soyad,
+      age: p.yas,
+      gender: p.cins,
+      city: p.sehir
+    },
+    ratings: Object.entries(pending.ratings).map(([movieId, rating]) => ({
+      movie_id: Number(movieId),
+      rating: rating === 0 ? null : rating
+    }))
+  };
+}
+
+
+// Save onboarding data to Supabase
+async function submitOnboarding() {
+  const payload = prepareOnboardingData();
+
+  if (!payload) {
+    console.error("No onboarding data found.");
+    return;
+  }
+
+  const { data: sessionData, error: sessionError } =
+    await supabaseClient.auth.getUser();
+
+  if (sessionError || !sessionData.user) {
+    console.error("User is not authenticated.");
+    return;
+  }
+
+  const { data, error } = await supabaseClient.rpc(
+    "save_onboarding",
+    {
+      p_profile: payload.profile,
+      p_ratings: payload.ratings
+    }
+  );
+
+  if (error) {
+    console.error("Onboarding error:", error);
+    return;
+  }
+
+  console.log("Onboarding saved:", data);
+
+  // Clear pending data only after success
+  localStorage.removeItem("filmBuddyPendingOnboarding");
+
+// Clear profile form fields
+$("ad").value = "";
+$("soyad").value = "";
+$("yas").value = "";
+$("cins").value = "";
+$("sehir").value = "";
+
+}
+
+
+
 
 // ---- 1. Temel bilgiler ----
 $("go1").onclick=()=>{
@@ -19,9 +123,24 @@ $("go1").onclick=()=>{
 };
 
 // ---- 2. Film oylama ----
-function poster(f){const h=(f.id*47)%360;return `<svg class="poster" viewBox="0 0 200 300" role="img" aria-label="${f.t} afişi (temsili)"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${h} 60% 38%)"/><stop offset="1" stop-color="hsl(${(h+50)%360} 65% 16%)"/></linearGradient></defs><rect width="200" height="300" fill="url(#g)"/><circle cx="150" cy="70" r="46" fill="hsl(${h} 80% 70%)" opacity=".25"/><text x="100" y="160" text-anchor="middle" fill="#fff" font-size="20" font-weight="700">${f.t}</text><text x="100" y="282" text-anchor="middle" fill="#fff" opacity=".6" font-size="10">TEMSİLİ AFİŞ</text></svg>`}
+
+// Show the real movie poster
+function poster(f) {
+  if (!f.poster_url) {
+    return '<div class="poster">Afiş bulunamadı</div>';
+  }
+
+  const img = document.createElement("img");
+  img.className = "poster";
+  img.src = f.poster_url;
+  img.alt = "Film afişi";
+  img.loading = "lazy";
+
+  return img.outerHTML;
+}
 function renderFilm(){
-  const f=FILMS[S.order[S.pos]],v=S.rt[f.id],n=rated(),onb=S.mode==="onb";
+  const f = FILMS.find(movie => movie.id === S.order[S.pos]);
+  v=S.rt[f.id],n=rated(),onb=S.mode==="onb";
   $("cnt").textContent=onb?`Eşleşmeye kalan: ${Math.max(0,10-n)}`:`Oylanan film: ${n}`;
   $("prog").style.width=onb?Math.min(100,n*10)+"%":"100%";
   $("exit").classList.toggle("hide",onb);$("updRow").classList.toggle("hide",onb);
@@ -32,12 +151,54 @@ function renderFilm(){
   $("skip").classList.toggle("sel",v===0);
   $("prev").disabled=S.pos===0;$("next").disabled=S.pos>=S.order.length-1;
 }
-function vote(v){
-  S.rt[S.order[S.pos]]=v;
-  if(S.mode==="onb"&&rated()>=10){show("sLogin");return}
-  if(S.pos<S.order.length-1)S.pos++;else toast("Tüm filmleri oyladın");
+
+function vote(v) {
+  S.rt[S.order[S.pos]] = v;
+
+  // Save data when 10 movies are rated
+  
+if (S.mode === "onb" && rated() >= 10) {
+  savePendingOnboarding();
+
+  // Check if the user is already signed in
+  supabaseClient.auth.getUser().then(async ({ data, error }) => {
+    if (error || !data.user) {
+      show("sLogin");
+      return;
+    }
+
+    // Save onboarding for the signed-in user
+    await submitOnboarding();
+
+    if (localStorage.getItem("filmBuddyPendingOnboarding")) {
+      console.error("Onboarding save failed.");
+      toast("Profil kaydedilemedi.");
+      return;
+    }
+
+    S.mode = "more";
+    S.tab = "adaylar";
+
+    calc();
+    show("sApp");
+    renderApp();
+
+    console.log("Onboarding completed!");
+  });
+
+  return;
+}
+
+
+  if (S.pos < S.order.length - 1) {
+    S.pos++;
+  } else {
+    toast("Tüm filmleri oyladın");
+  }
+
   renderFilm();
 }
+
 $("rate").onclick=e=>{const b=e.target.closest("button");if(b)vote(+b.dataset.v)};
 $("skip").onclick=()=>vote(0);
 $("prev").onclick=()=>{if(S.pos>0){S.pos--;renderFilm()}};
@@ -45,16 +206,52 @@ $("next").onclick=()=>{if(S.pos<S.order.length-1){S.pos++;renderFilm()}};
 $("exit").onclick=()=>{show("sApp");renderApp()};
 $("upd").onclick=()=>{calc();show("sApp");renderApp();toast("Eşleşmeler güncellendi")};
 
-// ---- 3. E-posta ile giriş (temsili) ----
-$("sendCode").onclick=()=>{
-  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test($("mail").value.trim())){$("e2").textContent="Geçerli bir e-posta gir.";return}
-  $("e2").textContent="";$("l1").classList.add("hide");$("l2").classList.remove("hide");
+
+
+
+// Start Google OAuth
+async function startGoogleLogin(button) {
+  button.disabled = true;
+
+  try {
+    const { error } = await supabaseClient.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin
+      }
+    });
+
+    if (error) {
+      console.error("Google login error:", error);
+      toast("Google ile giriş başlatılamadı.");
+    }
+  } catch (error) {
+    console.error("Google login failed:", error);
+    toast("Giriş sırasında bir hata oluştu.");
+  } finally {
+    button.disabled = false;
+  }
+}
+
+// Sign up after rating 10 movies
+$("googleLogin").onclick = async () => {
+  if (rated() < 10) {
+    toast("En az 10 filme puan vermelisin.");
+    return;
+  }
+
+  await startGoogleLogin($("googleLogin"));
 };
-$("back1").onclick=()=>{$("l2").classList.add("hide");$("l1").classList.remove("hide")};
-$("verify").onclick=()=>{
-  if(!/^\d{6}$/.test($("code").value.trim())){$("e3").textContent="6 haneli kodu gir.";return}
-  calc();S.mode="more";S.tab="adaylar";show("sApp");renderApp();
+
+// Sign in with an existing account
+$("existingLogin").onclick = async () => {
+  // Do not reuse previous onboarding data
+  localStorage.removeItem("filmBuddyPendingOnboarding");
+
+  await startGoogleLogin($("existingLogin"));
 };
+
+
 
 // ---- 4. Eşleşme sayfası ----
 function calc(){
@@ -94,6 +291,47 @@ function renderApp(){
 }
 $("tabs").onclick=e=>{const b=e.target.closest("button");if(b){S.tab=b.dataset.t;renderApp()}};
 $("more").onclick=()=>{S.mode="more";show("sVote");renderFilm()};
+
+// Sign out from Supabase
+$("logout").onclick = async () => {
+  const button = $("logout");
+  button.disabled = true;
+
+  try {
+    const { error } = await supabaseClient.auth.signOut();
+
+    if (error) {
+      console.error("Logout error:", error);
+      toast("Çıkış yapılamadı.");
+      return;
+    }
+
+    // Clear user data from memory
+    S.p = {};
+    S.rt = {};
+    S.act = {};
+    S.msgs = {};
+    S.scores = {};
+    S.chat = null;
+    S.pos = 0;
+    S.mode = "onb";
+    S.tab = "adaylar";
+
+    // Clear pending onboarding data
+    localStorage.removeItem("filmBuddyPendingOnboarding");
+
+    // Return to the welcome screen
+    show("sInfo");
+
+    console.log("Logout successful!");
+  } catch (error) {
+    console.error("Logout failed:", error);
+    toast("Çıkış sırasında bir hata oluştu.");
+  } finally {
+    button.disabled = false;
+  }
+};
+
 $("list").onclick=e=>{
   const b=e.target.closest("button");if(!b)return;
   const id=+b.dataset.c,a=b.dataset.a,c=CANDS[id];
@@ -116,3 +354,156 @@ function drawChat(){
 function send(){const t=$("chatIn").value.trim();if(!t)return;S.msgs[S.chat].push({me:1,t});$("chatIn").value="";drawChat()}
 $("chatSend").onclick=send;$("chatIn").onkeydown=e=>{if(e.key==="Enter")send()};
 $("chatBack").onclick=()=>{S.tab="esl";show("sApp");renderApp()};
+
+
+
+// Check session and complete onboarding
+
+// Restore user session and onboarding data
+async function checkAuthSession() {
+  const { data, error } = await supabaseClient.auth.getUser();
+
+  if (error || !data.user) {
+  console.log("No active session.");
+  show("sInfo");
+  return;
+}
+
+  const user = data.user;
+  console.log("Login successful!");
+
+
+// Check if the user already has a profile
+const { data: existingProfile, error: existingError } =
+  await supabaseClient
+    .from("profiles")
+    .select("id")
+    .eq("id", user.id)
+    .maybeSingle();
+
+if (existingError) {
+  console.error("Profile check failed:", existingError);
+  return;
+}
+
+if (existingProfile) {
+  // Ignore pending onboarding for registered users
+  localStorage.removeItem("filmBuddyPendingOnboarding");
+  console.log("Existing user detected.");
+}
+
+
+
+      const pending = existingProfile
+        ? null
+        : localStorage.getItem("filmBuddyPendingOnboarding");
+
+// Redirect new users to onboarding
+if (!existingProfile && !pending) {
+  console.log("New user detected.");
+
+  S.p = null;
+  S.rt = {};
+  S.mode = "onb";
+  S.pos = 0;
+
+  show("sInfo");
+  toast("Hoş geldin! Profilini oluştur ve 10 film puanla.");
+  return;
+}
+
+  if (pending) {
+    // Complete new user onboarding
+    try {
+      const saved = JSON.parse(pending);
+
+      if (!saved.profile || !saved.ratings) {
+        console.error("Incomplete onboarding data.");
+        return;
+      }
+
+      const ratedCount = Object.values(saved.ratings)
+        .filter(rating => Number(rating) >= 1 && Number(rating) <= 5)
+        .length;
+
+      if (ratedCount < 10) {
+        console.error("At least 10 movie ratings are required.");
+        return;
+      }
+
+      S.p = saved.profile;
+      S.rt = saved.ratings;
+
+      await submitOnboarding();
+
+      if (localStorage.getItem("filmBuddyPendingOnboarding")) {
+        console.error("Onboarding save failed.");
+        return;
+      }
+    } catch (error) {
+      console.error("Onboarding error:", error);
+      return;
+    }
+  } else {
+    // Load existing user profile
+    const { data: profile, error: profileError } =
+      await supabaseClient
+        .from("profiles")
+        .select("first_name, last_name, age, gender, city")
+        .eq("id", user.id)
+        .maybeSingle();
+
+    if (profileError || !profile) {
+      console.error("Profile not found:", profileError);
+      return;
+    }
+
+    // Load existing movie ratings
+    const { data: ratings, error: ratingsError } =
+      await supabaseClient
+        .from("user_movies")
+        .select("movie_id, rating")
+        .eq("user_id", user.id);
+
+    if (ratingsError) {
+      console.error("Ratings error:", ratingsError);
+      return;
+    }
+
+    const ratedCount = ratings.filter(
+      item => item.rating >= 1 && item.rating <= 5
+    ).length;
+
+    if (ratedCount < 10) {
+      console.error("User has fewer than 10 rated movies.");
+      return;
+    }
+
+    // Convert database data to frontend format
+    S.p = {
+      ad: profile.first_name,
+      soyad: profile.last_name,
+      yas: profile.age,
+      cins: profile.gender,
+      sehir: profile.city
+    };
+
+    S.rt = Object.fromEntries(
+      ratings.map(item => [item.movie_id, item.rating ?? 0])
+    );
+
+    console.log("Existing profile loaded!");
+  }
+
+  // Open matching screen
+  S.mode = "more";
+  S.tab = "adaylar";
+
+  calc();
+  show("sApp");
+  renderApp();
+
+  console.log("Session restored successfully!");
+}
+
+checkAuthSession();
