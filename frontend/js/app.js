@@ -2,7 +2,7 @@
 const $=id=>document.getElementById(id);
 const hr=(a,b)=>{const x=Math.sin(a*127.1+b*311.7)*43758.5453;return x-Math.floor(x)};
 const candRate=(c,f)=>{if(hr(c,f)<.35)return 0;const q=1+hr(f,7)*4;return Math.max(1,Math.min(5,Math.round(q+(hr(c,f+50)-.5)*3)))};
-const S={p:null,order:[],pos:0,rt:{},mode:"onb",tab:"adaylar",act:{},msgs:{},scores:{},chat:null};
+const S={p:null,order:[],pos:0,rt:{},mode:"onb",page:"matches",tab:"adaylar",act:{},msgs:{},scores:{},chat:null};
 
 // Load movies before starting the app
 async function initializeMovies() {
@@ -138,76 +138,114 @@ function poster(f) {
 
   return img.outerHTML;
 }
-function renderFilm(){
-  const f = FILMS.find(movie => movie.id === S.order[S.pos]);
-  v=S.rt[f.id],n=rated(),onb=S.mode==="onb";
-  $("cnt").textContent=onb?`Eşleşmeye kalan: ${Math.max(0,10-n)}`:`Oylanan film: ${n}`;
-  $("prog").style.width=onb?Math.min(100,n*10)+"%":"100%";
-  $("exit").classList.toggle("hide",onb);$("updRow").classList.toggle("hide",onb);
-  $("poster").innerHTML=poster(f);$("ft").textContent=f.t;
-  $("fs").textContent=`${f.y} · ${f.g} · ${f.d} dk`;
-  $("fd").textContent="Yönetmen, oyuncular ve kısa özet burada yer alacak (temsili).";
-  $("rate").innerHTML=[1,2,3,4,5].map(k=>`<button data-v="${k}" class="${v===k?"sel":""}">${k}</button>`).join("");
-  $("skip").classList.toggle("sel",v===0);
-  $("prev").disabled=S.pos===0;$("next").disabled=S.pos>=S.order.length-1;
+
+function renderFilm() {
+    const f = FILMS.find(movie => movie.id === S.order[S.pos]);
+
+    if (!f) {
+        toast("Filmler henüz yüklenmedi.");
+        return;
+    }
+
+    selectedRating = S.rt[f.id] ?? null;
+
+    const v = S.rt[f.id];
+    const n = rated();
+    const onb = S.mode === "onb";
+
+    $("cnt").textContent = onb
+        ? `Eşleşmeye kalan: ${Math.max(0, 10 - n)}`
+        : `Oylanan film: ${n}`;
+
+    $("prog").style.width = onb
+        ? Math.min(100, n * 10) + "%"
+        : "100%";
+
+    $("exit").classList.toggle("hide", onb);
+    $("updRow").classList.toggle("hide", onb);
+
+    $("poster").innerHTML = poster(f);
+    $("ft").textContent = f.t;
+    $("fs").textContent = `${f.y} · ${f.g} · ${f.d} dk`;
+    $("fd").textContent = "Yönetmen, oyuncular ve kısa özet burada yer alacak (temsili).";
+
+    $("rate").innerHTML = [1, 2, 3, 4, 5]
+        .map(k => `<button data-v="${k}" class="${v === k ? "sel" : ""}">${k}</button>`)
+        .join("");
+
+    $("skip").classList.toggle("sel", v === 0);
+
+    $("prev").disabled = S.pos === 0;
+    $("next").disabled = false;
 }
 
+let selectedRating = null;
+// Kullanıcı puan seçtiğinde sadece işaretle
 function vote(v) {
-  S.rt[S.order[S.pos]] = v;
+    selectedRating = v;
+    $("rate").querySelectorAll("button").forEach(button => {
+        button.classList.toggle(
+            "sel",
+            Number(button.dataset.v) === v
+        );
+    });
+    $("skip").classList.toggle("sel", v === 0);
+}
 
-  // Save data when 10 movies are rated
-  
-if (S.mode === "onb" && rated() >= 10) {
-  savePendingOnboarding();
-
-  // Check if the user is already signed in
-  supabaseClient.auth.getUser().then(async ({ data, error }) => {
-    if (error || !data.user) {
-      show("sLogin");
-      return;
+// 1-5 arası puanlama
+$("rate").onclick = e => {
+    const button = e.target.closest("button");
+    if (button) {
+        vote(Number(button.dataset.v));
     }
-
-    // Save onboarding for the signed-in user
-    await submitOnboarding();
-
-    if (localStorage.getItem("filmBuddyPendingOnboarding")) {
-      console.error("Onboarding save failed.");
-      toast("Profil kaydedilemedi.");
-      return;
+};
+// İzlemedim butonu
+$("skip").onclick = () => {
+    vote(0);
+};
+// Geri butonu
+$("prev").onclick = () => {
+    if (S.pos > 0) {
+        S.pos--;
+        renderFilm();
     }
+};
+// İleri butonu
+$("next").onclick = () => {
+    if (selectedRating === null) {
+        toast("Önce bir puan seç veya İzlemedim'e bas.");
+        return;
+    }
+    // Seçilen puanı kaydet
+    S.rt[S.order[S.pos]] = selectedRating;
+    // İlk 10 film tamamlandıysa giriş ekranına geç
+    if (S.mode === "onb" && rated() >= 10) {
+        savePendingOnboarding();
+        show("sLogin");
+        return;
+    }
+    // Sonraki filme geç
+    if (S.pos < S.order.length - 1) {
+        S.pos++;
+        renderFilm();
+    } else {
+        toast("Tüm filmleri oyladın.");
+    }
+};
 
-    S.mode = "more";
-    S.tab = "adaylar";
+// Oylama ekranından çık
+$("exit").onclick = () => {
+    show("sApp");
+    changeMainPage(S.page);
+};
 
+// Eşleşmeleri güncelle
+$("upd").onclick = () => {
     calc();
     show("sApp");
-    renderApp();
-
-    console.log("Onboarding completed!");
-  });
-
-  return;
-}
-
-
-  if (S.pos < S.order.length - 1) {
-    S.pos++;
-  } else {
-    toast("Tüm filmleri oyladın");
-  }
-
-  renderFilm();
-}
-
-$("rate").onclick=e=>{const b=e.target.closest("button");if(b)vote(+b.dataset.v)};
-$("skip").onclick=()=>vote(0);
-$("prev").onclick=()=>{if(S.pos>0){S.pos--;renderFilm()}};
-$("next").onclick=()=>{if(S.pos<S.order.length-1){S.pos++;renderFilm()}};
-$("exit").onclick=()=>{show("sApp");renderApp()};
-$("upd").onclick=()=>{calc();show("sApp");renderApp();toast("Eşleşmeler güncellendi")};
-
-
-
+    changeMainPage("matches");
+    toast("Eşleşmeler güncellendi");
+};
 
 // Start Google OAuth
 async function startGoogleLogin(button) {
@@ -283,14 +321,14 @@ function card(c,kind,first){
 }
 function renderApp(){
   const L=lists();
-  $("hello").textContent=`Merhaba ${S.p.ad}`;
-  const T=[["ilgi","Size ilgi",L.ilgi.length],["adaylar","Adaylar",L.adaylar.length],["esl","Eşleşmeler",L.esl.length]];
+  $("hello").textContent=`Merhaba ${S.p?.ad || "filmsever"} 👋`;
+  const T=[["adaylar","Adaylar",L.adaylar.length],["ilgi","Size ilgi",L.ilgi.length],["esl","Eşleşmeler",L.esl.length]];
   $("tabs").innerHTML=T.map(t=>`<button data-t="${t[0]}" class="${S.tab===t[0]?"on":""}">${t[1]}<b>${t[2]||""}</b></button>`).join("");
   const arr=L[S.tab],head=S.tab==="adaylar"?`<div class="top" style="margin-bottom:10px"><div><h2>Bugün ${arr.length} aday</h2><p style="margin:0">Birbirinize “İlgileniyorum” dediğinizde eşleşirsiniz.</p></div></div><div class="box" style="margin-bottom:14px"><span>Daha iyi eşleşme için daha fazla film oyla, sonra eşleşmeleri güncelle.</span></div>`:S.tab==="ilgi"?`<h2 style="margin-bottom:10px">Size ilgi gösterenler</h2>`:`<h2 style="margin-bottom:10px">Eşleşmelerin</h2>`;
   $("list").innerHTML=head+(arr.length?`<div class="cards">${arr.map((c,i)=>card(c,S.tab,i===0)).join("")}</div>`:`<div class="empty">${S.tab==="esl"?"Henüz eşleşme yok. İki taraf da ilgilendiğinde burada sohbet açılır.":"Şimdilik kimse yok. Daha fazla film oyla, eşleşmeleri güncelle."}</div>`);
 }
 $("tabs").onclick=e=>{const b=e.target.closest("button");if(b){S.tab=b.dataset.t;renderApp()}};
-$("more").onclick=()=>{S.mode="more";show("sVote");renderFilm()};
+$("more").onclick=continueVoting;
 
 // Sign out from Supabase
 $("logout").onclick = async () => {
@@ -316,6 +354,7 @@ $("logout").onclick = async () => {
     S.pos = 0;
     S.mode = "onb";
     S.tab = "adaylar";
+    S.page = "matches";
 
     // Clear pending onboarding data
     localStorage.removeItem("filmBuddyPendingOnboarding");
@@ -353,9 +392,114 @@ function drawChat(){
 }
 function send(){const t=$("chatIn").value.trim();if(!t)return;S.msgs[S.chat].push({me:1,t});$("chatIn").value="";drawChat()}
 $("chatSend").onclick=send;$("chatIn").onkeydown=e=>{if(e.key==="Enter")send()};
-$("chatBack").onclick=()=>{S.tab="esl";show("sApp");renderApp()};
+$("chatBack").onclick=()=>{S.tab="esl";show("sApp");changeMainPage("matches")};
 
 
+
+// ---- Giriş sonrası ana menü, oylama geçmişi ve profil ----
+function changeMainPage(page) {
+  S.page = page;
+  ["matches", "votes", "profile"].forEach(name => {
+    const cap = name[0].toUpperCase() + name.slice(1);
+    $("page" + cap).classList.toggle("hide", page !== name);
+    $("menu" + cap).classList.toggle("active", page === name);
+  });
+  if (page === "matches") renderApp();
+  if (page === "votes") renderVoteHistory();
+  if (page === "profile") renderProfile();
+}
+$("menuMatches").onclick = () => changeMainPage("matches");
+$("menuVotes").onclick = () => changeMainPage("votes");
+$("menuProfile").onclick = () => changeMainPage("profile");
+
+function continueVoting() {
+  S.mode = "more";
+  const next = S.order.findIndex(id => S.rt[id] === undefined);
+  S.pos = next < 0 ? 0 : next;
+  show("sVote");
+  renderFilm();
+}
+$("voteMore").onclick = continueVoting;
+
+function renderVoteHistory() {
+  const container = $("voteHistory");
+  container.replaceChildren();
+  const movies = FILMS.filter(f => S.rt[f.id] !== undefined);
+  $("voteSummary").textContent = `${rated()} puanlı film · ${movies.filter(f => S.rt[f.id] === 0).length} izlemedim`;
+  if (!movies.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = "Henüz film oylamadın.";
+    container.append(empty);
+    return;
+  }
+  movies.forEach(f => {
+    const value = Number(S.rt[f.id]);
+    const card = document.createElement("div"); card.className = "vote-card";
+    const img = document.createElement("img"); img.src = f.poster_url || ""; img.alt = f.t + " afişi"; img.loading = "lazy";
+    const details = document.createElement("div"); details.className = "vote-details";
+    const title = document.createElement("h3"); title.textContent = f.t;
+    const year = document.createElement("p"); year.textContent = f.y || "";
+    const stars = document.createElement("div"); stars.className = "vote-stars";
+    stars.textContent = value === 0 ? "👁 İzlemedim" : "★".repeat(value) + "☆".repeat(5 - value);
+    const edit = document.createElement("button"); edit.textContent = "✏️ Düzenle";
+    edit.onclick = () => { S.pos = S.order.indexOf(f.id); S.mode = "more"; show("sVote"); renderFilm(); };
+    details.append(title, year, stars); card.append(img, details, edit); container.append(card);
+  });
+}
+
+// Existing user ratings are saved to the same table read by checkAuthSession.
+async function saveMovieRating(movieId, rating) {
+  try {
+    const { data, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !data.user) return;
+    const { error } = await supabaseClient.from("user_movies").upsert(
+      { user_id: data.user.id, movie_id: movieId, rating: rating === 0 ? null : rating },
+      { onConflict: "user_id,movie_id" }
+    );
+    if (error) { console.error("Rating save error:", error); toast("Puan sunucuya kaydedilemedi."); }
+  } catch (error) { console.error("Rating save failed:", error); toast("Puan sunucuya kaydedilemedi."); }
+}
+
+async function renderProfile() {
+  if (!S.p) return;
+  $("profileName").value = S.p.ad || "";
+  $("profileSurname").value = S.p.soyad || "";
+  $("profileAge").value = S.p.yas || "";
+  $("profileGender").value = S.p.cins || "Belirtmek istemiyorum";
+  $("profileCity").value = S.p.sehir || "";
+  const { data } = await supabaseClient.auth.getUser();
+  if (S.page === "profile") $("profileEmail").value = data?.user?.email || "";
+}
+$("saveProfile").onclick = async () => {
+  const updated = {
+    ad: $("profileName").value.trim(), soyad: $("profileSurname").value.trim(),
+    yas: Number($("profileAge").value), cins: $("profileGender").value,
+    sehir: $("profileCity").value.trim()
+  };
+  if (!updated.ad || !updated.soyad || !updated.sehir || !updated.cins ||
+      !Number.isInteger(updated.yas) || updated.yas < 18 || updated.yas > 99) {
+    $("profileError").textContent = "Lütfen geçerli bilgileri gir.";
+    return;
+  }
+  const button = $("saveProfile"); button.disabled = true;
+  $("profileError").textContent = "";
+  try {
+    const { data, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !data.user) throw new Error("Oturum bulunamadı.");
+    const { error } = await supabaseClient.from("profiles").update({
+      first_name: updated.ad, last_name: updated.soyad, age: updated.yas,
+      gender: updated.cins, city: updated.sehir
+    }).eq("id", data.user.id);
+    if (error) throw error;
+    S.p = updated;
+    $("hello").textContent = `Merhaba ${S.p.ad} 👋`;
+    toast("Profil bilgilerin kaydedildi.");
+  } catch (error) {
+    console.error("Profile update failed:", error);
+    $("profileError").textContent = "Profil kaydedilemedi. Supabase izinlerini kontrol edin.";
+  } finally { button.disabled = false; }
+};
 
 // Check session and complete onboarding
 
@@ -501,7 +645,7 @@ if (!existingProfile && !pending) {
 
   calc();
   show("sApp");
-  renderApp();
+  changeMainPage("matches");
 
   console.log("Session restored successfully!");
 }

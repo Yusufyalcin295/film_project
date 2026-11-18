@@ -79,27 +79,26 @@
   </div>
 </section>
 
-<!-- 4. Eşleşme sayfası -->
+<!-- 4. Giriş sonrası üç ana sayfa -->
 <section id="sApp" class="hide">
-  
-<div class="top">
-  <div>
-    <h1 id="hello"></h1>
+  <div class="top app-header">
+    <div><h1>🎬 Film<span class="brand">Match</span></h1><p id="hello"></p></div>
+    <div class="app-actions"><button class="pri" id="more">🎞 Film oylamaya devam et</button><button id="logout">Çıkış Yap</button></div>
   </div>
-
-  <div class="app-actions">
-    <button class="pri" id="more">
-      Film oylamaya devam et
-    </button>
-
-    <button id="logout">
-      Çıkış Yap
-    </button>
-  </div>
-</div>
-
-  <div class="tabs" id="tabs"></div>
-  <div id="list"></div>
+  <nav class="main-menu" aria-label="Ana menü">
+    <button id="menuMatches" class="active" type="button">💜 Eşleşmelerim</button>
+    <button id="menuVotes" type="button">⭐ Oylamalarım</button>
+    <button id="menuProfile" type="button">👤 Profilim</button>
+  </nav>
+  <div id="pageMatches"><h2>💜 Eşleşmelerim</h2><p>Film zevkine uygun kişileri keşfet.</p><div class="tabs" id="tabs"></div><div id="list"></div></div>
+  <div id="pageVotes" class="hide"><div class="top"><div><h2>⭐ Oylamalarım</h2><p id="voteSummary">Puanladığın filmler</p></div><button class="pri" id="voteMore">+ Film Oyla</button></div><div id="voteHistory"></div></div>
+  <div id="pageProfile" class="hide"><div class="card profile-card"><h2>👤 Profilim</h2><p>Kişisel bilgilerini güncelleyebilirsin.</p>
+    <div class="grid2"><div><label for="profileName">Ad</label><input id="profileName"></div><div><label for="profileSurname">Soyad</label><input id="profileSurname"></div></div>
+    <div class="grid2"><div><label for="profileAge">Yaş</label><input id="profileAge" type="number" min="18" max="99"></div><div><label for="profileGender">Cinsiyet</label><select id="profileGender"><option>Kadın</option><option>Erkek</option><option>Belirtmek istemiyorum</option></select></div></div>
+    <label for="profileCity">Şehir</label><input id="profileCity">
+    <label for="profileEmail">Google hesabı e-postası</label><input id="profileEmail" type="email" disabled>
+    <div class="err" id="profileError"></div><div class="row"><button class="pri" id="saveProfile">💾 Değişiklikleri Kaydet</button></div>
+  </div></div>
 </section>
 
 <!-- 5. Sohbet -->

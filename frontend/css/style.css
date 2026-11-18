@@ -116,3 +116,25 @@ button:disabled{opacity:.4;cursor:not-allowed}
     flex-wrap: wrap;
   }
 }
+
+/* FilmMatch: üç ana sayfa ve daha canlı renkler */
+:root { --ac:#7355dc; --acx:#fff; --hi:#ed9f32; }
+@media (prefers-color-scheme:dark) { :root:not([data-theme="light"]) { --ac:#a38aff; --acx:#161020; --hi:#ffc46a; } }
+:root[data-theme="dark"] { --ac:#a38aff; --acx:#161020; --hi:#ffc46a; }
+.brand { color:var(--hi); }
+.main-menu { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:22px 0 26px; }
+.main-menu button { font-weight:700; padding:15px 7px; border-radius:14px; transition:transform .2s, background .2s; }
+.main-menu button:hover { transform:translateY(-2px); }
+.main-menu button.active { background:var(--ac); color:var(--acx); border-color:var(--ac); box-shadow:0 5px 20px #7454dd30; }
+#pageMatches,#pageVotes,#pageProfile { animation:fadeIn .2s ease-out; }
+@keyframes fadeIn { from { opacity:.5; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+.vote-card { display:flex; align-items:center; gap:14px; padding:13px; margin:12px 0; border:1px solid var(--bd); border-radius:16px; background:var(--card); }
+.vote-card img { width:74px; height:108px; object-fit:cover; border-radius:9px; background:var(--tab); flex:none; }
+.vote-details { flex:1; min-width:0; }
+.vote-details h3 { margin:0 0 5px; font-size:1rem; overflow-wrap:anywhere; }
+.vote-details p { margin:0; }
+.vote-stars { color:var(--hi); font-size:1.25rem; letter-spacing:2px; margin-top:7px; }
+.vote-card button { font-size:.83rem; padding:9px; }
+.profile-card { max-width:570px; margin:0 auto; }
+#pageProfile input:focus,#pageProfile select:focus { outline:2px solid var(--ac); }
+@media(max-width:550px) { .main-menu { gap:5px; } .main-menu button { font-size:.78rem; padding:12px 4px; } .vote-card { gap:9px; } .vote-card img { width:55px; height:82px; } .vote-card button { padding:7px; font-size:.75rem; } }
