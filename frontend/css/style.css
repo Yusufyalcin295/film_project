@@ -45,3 +45,74 @@ button:disabled{opacity:.4;cursor:not-allowed}
 #chatBox{height:min(52vh,420px);overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:12px}
 .msg{max-width:78%;padding:8px 12px;border-radius:14px;background:var(--tab);align-self:flex-start;font-size:.93rem}.msg.me{align-self:flex-end;background:var(--ac);color:var(--acx)}
 #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:10px 16px;border-radius:99px;font-size:.9rem;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9}
+
+
+/* Google login button */
+.google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 15px 20px;
+  background: #ffffff;
+  color: #202124;
+  border: 1px solid #dadce0;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.google-btn:hover {
+  background: #f8f9fa;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.google-btn svg {
+  flex-shrink: 0;
+}
+
+#googleLogin {
+  display: flex;
+  width: 100%;
+}
+
+.login-note {
+  margin: 16px 0 0;
+  text-align: center;
+  font-size: 13px;
+  color: #777;
+  line-height: 1.6;
+}
+
+/* Make Google button full width */
+#sLogin .card #googleLogin {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 100% !important;
+  box-sizing: border-box;
+  margin: 0;
+}
+
+
+/* App header actions */
+.app-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+@media (max-width: 600px) {
+  #sApp > .top {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .app-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+}
