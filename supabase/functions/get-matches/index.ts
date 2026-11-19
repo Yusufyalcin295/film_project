@@ -1,12 +1,14 @@
 
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { withSupabase } from "npm:@supabase/server@^1";
+
+import "@supabase/functions-js/edge-runtime.d.ts";
+import { withSupabase } from "@supabase/server";
+
 import {
   buildIndex,
   rankCandidates,
-  type User,
   type UserMap,
 } from "../_shared/engine.ts";
+
 
 const PAGE_SIZE = 1000;
 const MAX_PAGES = 50;
