@@ -1,7 +1,6 @@
-
-
 import "@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from "@supabase/server";
+
 
 import {
   buildIndex,
@@ -9,6 +8,7 @@ import {
   type UserMap,
 } from "../_shared/engine.ts";
 
+import { loadActionPages } from "../_shared/pagination.ts";
 
 const PAGE_SIZE = 1000;
 const MAX_PAGES = 50;
@@ -97,41 +97,42 @@ export default {
     }
 
 
+
     // Load all actions affecting the current user.
-    const actions: {
-      actor_id: string;
-      target_id: string;
-      action: string;
-    }[] = [];
+    let actions;
 
-    for (let page = 0; page < MAX_PAGES; page++) {
-      const { data, error } = await ctx.supabaseAdmin
-        .from("user_actions")
-        .select("actor_id, target_id, action")
-        .or(`actor_id.eq.${userId},target_id.eq.${userId}`)
-        .order("actor_id")
-        .order("target_id")
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+    try {
+      actions = await loadActionPages(
+        async (start, end) => {
+          const { data, error } = await ctx.supabaseAdmin
+            .from("user_actions")
+            .select("actor_id, target_id, action")
+            .or(`actor_id.eq.${userId},target_id.eq.${userId}`)
+            .order("actor_id")
+            .order("target_id")
+            .range(start, end);
 
-      if (error) {
-        console.error("Action query failed:", error.message);
+          return { data, error };
+        },
+        PAGE_SIZE,
+        MAX_PAGES,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
 
-        return Response.json(
-          { error: "Could not load user actions" },
-          { status: 500 },
-        );
-      }
+      console.error("Action pagination failed:", message);
 
-      actions.push(...(data ?? []));
+      const limitExceeded = message ===
+        "Action dataset exceeds the current limit";
 
-      if ((data?.length ?? 0) < PAGE_SIZE) break;
-
-      if (page === MAX_PAGES - 1) {
-        return Response.json(
-          { error: "Action dataset exceeds the current limit" },
-          { status: 503 },
-        );
-      }
+      return Response.json(
+        {
+          error: limitExceeded
+            ? "Action dataset exceeds the current limit"
+            : "Could not load user actions",
+        },
+        { status: limitExceeded ? 503 : 500 },
+      );
     }
 
 
