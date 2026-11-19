@@ -1,12 +1,23 @@
-HEAD
 
 # macOS system files
 .DS_Store
+
+# PyCharm
 .idea/
+
+# Python
 .venv/
 venv/
 __pycache__/
 *.pyc
-.env
+
+# Node.js dependencies
 node_modules/
-origin/ai/matching-algorithm
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# Local database backups
+backups/

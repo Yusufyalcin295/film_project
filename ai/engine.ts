@@ -1,8 +1,7 @@
 // Genel eşleştirme motoru: aday bulma, sıralama, beğeni/eşleşme ve film akışı.
 // Skor yalnızca film puanlarına dayanır (matching.ts); profil bilgisi skora etki etmez.
 
-import { matchScore, MIN_COMMON, MIN_RATED_TO_UNLOCK, Ratings, MatchResult } from "./matching";
-
+import { matchScore, MIN_COMMON, MIN_RATED_TO_UNLOCK, Ratings, MatchResult } from "./matching.ts";
 export interface User {
   id: string;
   ratings: Ratings;      // yalnızca puanlanan filmler (izlemedim yok)
