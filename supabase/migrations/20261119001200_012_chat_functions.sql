@@ -115,6 +115,69 @@ TO authenticated;
 
 -- ==========================================
 -- MESAJ OKUMA YETKISI
+
+-- ==========================================
+-- CHAT MESAJ OKUMA KONTROLU
+-- ==========================================
+
+CREATE OR REPLACE FUNCTION public.can_read_chat_match(
+    p_match_id UUID
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+    v_user_id UUID := auth.uid();
+BEGIN
+
+    IF v_user_id IS NULL OR p_match_id IS NULL THEN
+        RETURN FALSE;
+    END IF;
+
+    RETURN EXISTS (
+        SELECT 1
+        FROM public.matches m
+        WHERE m.id = p_match_id
+          AND m.status = 'active'
+          AND (
+              m.user1_id = v_user_id
+              OR m.user2_id = v_user_id
+          )
+          AND NOT EXISTS (
+              SELECT 1
+              FROM public.user_actions ua
+              WHERE ua.action = 'block'
+                AND (
+                    (
+                        ua.actor_id = m.user1_id
+                        AND ua.target_id = m.user2_id
+                    )
+                    OR
+                    (
+                        ua.actor_id = m.user2_id
+                        AND ua.target_id = m.user1_id
+                    )
+                )
+          )
+    );
+
+END;
+$$;
+
+
+-- Sadece giris yapmis kullanicilar cagirabilsin
+REVOKE ALL ON FUNCTION public.can_read_chat_match(UUID)
+FROM PUBLIC, anon, authenticated;
+
+GRANT EXECUTE ON FUNCTION public.can_read_chat_match(UUID)
+TO authenticated;
+
+
+-- ==========================================
+-- MESAJ OKUMA POLITIKASI
 -- ==========================================
 
 CREATE POLICY "Participants can read chat messages"
@@ -122,22 +185,16 @@ ON public.messages
 FOR SELECT
 TO authenticated
 USING (
-    EXISTS (
-        SELECT 1
-        FROM public.matches
-        WHERE matches.id = messages.match_id
-          AND (
-              matches.user1_id = (SELECT auth.uid())
-              OR matches.user2_id = (SELECT auth.uid())
-          )
-    )
+    public.can_read_chat_match(match_id)
 );
 
--- Mesajlari okuyabilsinler
-GRANT SELECT ON public.messages TO authenticated;
 
--- Dogrudan mesaj ekleyemesinler.
--- Mesajlar yalnizca RPC ile gonderilecek.
-REVOKE INSERT, UPDATE, DELETE
-ON public.messages
-FROM authenticated, anon;
+-- ==========================================
+-- MESAJ TABLOSU YETKILERI
+-- ==========================================
+
+REVOKE ALL ON TABLE public.messages
+FROM PUBLIC, anon, authenticated;
+
+GRANT SELECT ON TABLE public.messages
+TO authenticated;
