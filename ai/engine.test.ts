@@ -45,6 +45,21 @@ describe("rankCandidates", () => {
     agree.blocked.add("me");
     expect(rankCandidates(me, users, index).map((r) => r.userId)).toEqual(["opposite"]);
   });
+
+
+  it("does not recommend users who passed on me", () => {
+    const { me, agree, users, index } = setup();
+
+    // The other user passed on me.
+    agree.passed.add(me.id);
+
+    const candidates = rankCandidates(me, users, index);
+    const ids = candidates.map((candidate) => candidate.userId);
+
+    expect(ids).not.toContain(agree.id);
+    expect(ids).toEqual(["opposite"]);
+});
+
 });
 
 describe("beğeni ve eşleşme", () => {
