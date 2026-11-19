@@ -94,21 +94,44 @@ export default {
       }
     }
 
-    // Load actions affecting the current user.
-    const { data: actions, error: actionsError } =
-      await ctx.supabaseAdmin
+
+    // Load all actions affecting the current user.
+    const actions: {
+      actor_id: string;
+      target_id: string;
+      action: string;
+    }[] = [];
+
+    for (let page = 0; page < MAX_PAGES; page++) {
+      const { data, error } = await ctx.supabaseAdmin
         .from("user_actions")
         .select("actor_id, target_id, action")
-        .or(`actor_id.eq.${userId},target_id.eq.${userId}`);
+        .or(`actor_id.eq.${userId},target_id.eq.${userId}`)
+        .order("actor_id")
+        .order("target_id")
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
-    if (actionsError) {
-      console.error("Action query failed:", actionsError.message);
+      if (error) {
+        console.error("Action query failed:", error.message);
 
-      return Response.json(
-        { error: "Could not load user actions" },
-        { status: 500 },
-      );
+        return Response.json(
+          { error: "Could not load user actions" },
+          { status: 500 },
+        );
+      }
+
+      actions.push(...(data ?? []));
+
+      if ((data?.length ?? 0) < PAGE_SIZE) break;
+
+      if (page === MAX_PAGES - 1) {
+        return Response.json(
+          { error: "Action dataset exceeds the current limit" },
+          { status: 503 },
+        );
+      }
     }
+
 
     // Fill the AI engine's action sets.
     for (const action of actions ?? []) {

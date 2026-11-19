@@ -47,9 +47,11 @@ export function isEligible(me: User, other: User): boolean {
     !me.blocked.has(other.id) &&
     !other.blocked.has(me.id) &&
     !me.passed.has(other.id) &&
+    !other.passed.has(me.id) &&
     !me.liked.has(other.id)
   );
 }
+
 
 export interface Ranked { userId: string; result: MatchResult }
 
