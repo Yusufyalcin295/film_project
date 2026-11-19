@@ -135,6 +135,12 @@ BEGIN
             DO UPDATE SET status = 'active';
         END IF;
     ELSE
+        -- Invalidate the other user's old like.
+        DELETE FROM public.user_actions
+        WHERE actor_id = p_target_id
+          AND target_id = v_actor_id
+          AND action = 'like';
+
         -- A pass or block ends an existing match.
         UPDATE public.matches
         SET status = 'inactive'
