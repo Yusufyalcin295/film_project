@@ -94,6 +94,42 @@ export default {
       }
     }
 
+    // Load actions affecting the current user.
+    const { data: actions, error: actionsError } =
+      await ctx.supabaseAdmin
+        .from("user_actions")
+        .select("actor_id, target_id, action")
+        .or(`actor_id.eq.${userId},target_id.eq.${userId}`);
+
+    if (actionsError) {
+      console.error("Action query failed:", actionsError.message);
+
+      return Response.json(
+        { error: "Could not load user actions" },
+        { status: 500 },
+      );
+    }
+
+    // Fill the AI engine's action sets.
+    for (const action of actions ?? []) {
+      const actor = users.get(action.actor_id);
+
+      if (!actor) continue;
+
+      if (action.action === "block") {
+        actor.blocked.add(action.target_id);
+      }
+
+      if (action.action === "pass") {
+        actor.passed.add(action.target_id);
+      }
+
+      if (action.action === "like") {
+        actor.liked.add(action.target_id);
+      }
+    }
+
+
     const me = users.get(userId);
 
     if (!me || me.ratings.size < 10) {
