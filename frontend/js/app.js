@@ -1,7 +1,8 @@
 
 const $ = id => document.getElementById(id);
 
-// Mevcut temsili eşleşme hesaplaması
+// TEMSİLİ EŞLEŞME HESAPLAMASI
+
 const hr = (a,b) => {
   const x = Math.sin(a*127.1+b*311.7)*43758.5453;
   return x-Math.floor(x);
@@ -56,7 +57,10 @@ async function initializeMovies() {
   S.pos=0;
 }
 
+
+// ==========================================
 // ONBOARDING
+// ==========================================
 
 function savePendingOnboarding() {
   if (!S.p || rated()<10) return;
@@ -116,7 +120,10 @@ async function submitOnboarding() {
   ["ad","soyad","yas","cins","sehir"].forEach(id=>$(id).value="");
 }
 
+
+// ==========================================
 // TEMEL BİLGİLER
+// ==========================================
 
 $("go1").onclick=()=>{
   const p={
@@ -144,7 +151,10 @@ $("go1").onclick=()=>{
   renderFilm();
 };
 
+
+// ==========================================
 // FİLM OYLAMA
+// ==========================================
 
 function poster(f) {
   if (!f.poster_url)
@@ -268,11 +278,13 @@ $("next").onclick=async()=>{
       }
 
       loadFavoritesForUser(data.user.id);
+      loadDemoChats(data.user.id);
       S.mode="more";
       S.tab="adaylar";
       calc();
       show("sApp");
       changeMainPage("matches");
+
     } catch(error) {
       console.error("Onboarding failed:",error);
       toast("Kayıt sırasında hata oluştu.");
@@ -302,7 +314,10 @@ $("upd").onclick=()=>{
   toast("Eşleşmeler güncellendi.");
 };
 
+
+// ==========================================
 // GOOGLE GİRİŞ
+// ==========================================
 
 async function startGoogleLogin(button) {
   button.disabled=true;
@@ -338,7 +353,10 @@ $("existingLogin").onclick=async()=>{
   await startGoogleLogin($("existingLogin"));
 };
 
+
+// ==========================================
 // EŞLEŞMELER
+// ==========================================
 
 function calc() {
   CANDS.forEach(c=>{
@@ -347,8 +365,10 @@ function calc() {
 
     Object.keys(S.rt).forEach(fid=>{
       const myRating=S.rt[fid];
+
       if (myRating>0) {
         const otherRating=candRate(c.id,Number(fid));
+
         if (otherRating>0) {
           shared++;
           difference+=Math.abs(myRating-otherRating);
@@ -367,6 +387,7 @@ function calc() {
 
 function ring(score) {
   const r=26,c=2*Math.PI*r;
+
   return `<div class="ring">
     <svg width="62" height="62">
       <circle cx="31" cy="31" r="${r}" fill="none"
@@ -396,9 +417,15 @@ function card(c,kind,first) {
   let buttons="";
 
   if (kind==="esl") {
-    buttons=`<div class="acts">
+    buttons=`<div class="acts match-actions">
+      <button data-a="profile" data-c="${c.id}">
+        👤 Profili Gör
+      </button>
       <button class="pri" data-a="chat" data-c="${c.id}">
-        Sohbete git
+        💬 Sohbete Git
+      </button>
+      <button class="match-danger" data-a="unmatch" data-c="${c.id}">
+        × Eşleşmeyi Sil
       </button>
     </div>`;
   } else {
@@ -445,6 +472,7 @@ function card(c,kind,first) {
 
 function renderApp() {
   const L=lists();
+
   $("hello").textContent=`Merhaba ${S.p?.ad||"filmsever"} 👋`;
 
   const tabs=[
@@ -507,6 +535,7 @@ $("logout").onclick=async()=>{
 
   try {
     const {error}=await supabaseClient.auth.signOut();
+
     if (error) {
       toast("Çıkış yapılamadı.");
       return;
@@ -518,6 +547,7 @@ $("logout").onclick=async()=>{
     S.msgs={};
     S.scores={};
     S.chat=null;
+    chatStorageUser=null;
     S.pos=0;
     S.mode="onb";
     S.tab="adaylar";
@@ -529,6 +559,7 @@ $("logout").onclick=async()=>{
 
     localStorage.removeItem("filmBuddyPendingOnboarding");
     show("sInfo");
+
   } catch(error) {
     console.error("Logout failed:",error);
     toast("Çıkış sırasında hata oluştu.");
@@ -543,10 +574,13 @@ $("list").onclick=e=>{
 
   const id=Number(button.dataset.c);
   const action=button.dataset.a;
-  const candidate=CANDS[id];
+  const candidate=candidateById(id);
+
+  if (!candidate) return;
 
   if (action==="pass") {
     S.act[id]="pass";
+
   } else if (action==="like"||action==="sendnote") {
     if (candidate.likesYou) {
       S.act[id]="match";
@@ -555,69 +589,485 @@ $("list").onclick=e=>{
       S.act[id]="sent";
       toast("İlgin gönderildi");
     }
+
   } else if (action==="note") {
     $("nt"+id).classList.toggle("hide");
     return;
+
   } else if (action==="chat") {
     openChat(id);
     return;
+
+  } else if (action==="profile") {
+    openMatchProfile(id);
+    return;
+
+  } else if (action==="unmatch") {
+    openUnmatchModal(id);
+    return;
   }
 
+  saveDemoChats();
   renderApp();
 };
 
-// SOHBET
+
+// ==========================================
+// SOHBET - FRONTEND DEMOSU
+// ==========================================
+
+const CHAT_LIMIT = 20;
+
+let chatStorageUser = null;
+let selectedProfileId = null;
+let unmatchTargetId = null;
+let chatFocusBeforeModal = null;
+
+function candidateById(id) {
+  return CANDS.find(c => Number(c.id) === Number(id));
+}
+
+function chatStorageKey() {
+  return chatStorageUser
+    ? `filmMatchDemoChats:${chatStorageUser}`
+    : null;
+}
+
+function saveDemoChats() {
+  const key=chatStorageKey();
+  if (!key) return;
+
+  try {
+    localStorage.setItem(key,JSON.stringify({
+      msgs:S.msgs,
+      acts:S.act
+    }));
+  } catch(error) {
+    console.warn("Demo sohbet kaydedilemedi:",error);
+  }
+}
+
+function loadDemoChats(userId) {
+  chatStorageUser=userId;
+  S.msgs={};
+  S.act={};
+
+  try {
+    const saved=localStorage.getItem(chatStorageKey());
+    const data=JSON.parse(saved||"{}");
+
+    if (data.msgs && typeof data.msgs==="object")
+      S.msgs=data.msgs;
+
+    if (data.acts && typeof data.acts==="object")
+      S.act=data.acts;
+
+  } catch(error) {
+    console.warn("Demo sohbet yüklenemedi:",error);
+  }
+}
+
+function matchedCandidates() {
+  return CANDS.filter(c => S.act[c.id]==="match");
+}
+
+function initials(name) {
+  return String(name||"FM")
+    .trim()
+    .split(/\s+/)
+    .slice(0,2)
+    .map(word=>word[0]||"")
+    .join("")
+    .toLocaleUpperCase("tr");
+}
+
+function chatMessages(id) {
+  if (!Array.isArray(S.msgs[id])) {
+    S.msgs[id]=[];
+  }
+  return S.msgs[id];
+}
+
+function messageTime(value) {
+  if (!value) return "";
+
+  const date=new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toLocaleString("tr-TR",{
+    day:"2-digit",
+    month:"short",
+    hour:"2-digit",
+    minute:"2-digit"
+  });
+}
+
+function renderChatContacts() {
+  const list=$("chatContacts");
+  list.replaceChildren();
+
+  const candidates=matchedCandidates();
+
+  if (!candidates.length) {
+    const empty=document.createElement("div");
+    empty.className="empty";
+    empty.textContent="Henüz eşleştiğin kimse yok.";
+    list.append(empty);
+    return;
+  }
+
+  candidates.sort((a,b)=>{
+    const lastA=chatMessages(a.id).at(-1)?.at||"";
+    const lastB=chatMessages(b.id).at(-1)?.at||"";
+    return lastB.localeCompare(lastA);
+  });
+
+  candidates.forEach(c=>{
+    const button=document.createElement("button");
+    button.type="button";
+    button.className="chat-contact";
+
+    if (Number(S.chat)===Number(c.id)) {
+      button.classList.add("active");
+    }
+
+    const avatar=document.createElement("span");
+    avatar.className="chat-avatar";
+    avatar.textContent=initials(c.n);
+
+    const details=document.createElement("span");
+    details.className="chat-contact-details";
+
+    const name=document.createElement("strong");
+    name.textContent=c.n;
+
+    const preview=document.createElement("small");
+    const last=chatMessages(c.id).at(-1);
+
+    preview.textContent=last
+      ?(last.me?"Sen: ":"")+last.t
+      :"Henüz mesaj yok";
+
+    details.append(name,preview);
+
+    const date=document.createElement("small");
+    date.className="chat-contact-date";
+    date.textContent=last?messageTime(last.at):"";
+
+    button.append(avatar,details,date);
+
+    button.onclick=()=>selectConversation(c.id);
+    list.append(button);
+  });
+}
+
+function selectConversation(id) {
+  if (!matchedCandidates().some(c=>Number(c.id)===Number(id))) {
+    return;
+  }
+
+  S.chat=Number(id);
+  $("chatLayout").classList.add("chat-mobile-open");
+
+  renderChatContacts();
+  drawChat();
+}
 
 function openChat(id) {
-  S.chat=id;
-  $("chatTitle").textContent=CANDS[id].n;
-  S.msgs[id]=S.msgs[id]||[];
-  drawChat();
+  if (!matchedCandidates().some(c=>Number(c.id)===Number(id))) {
+    toast("Sohbet için karşılıklı eşleşmeniz gerekiyor.");
+    return;
+  }
+
+  S.chat=Number(id);
   show("sChat");
+
+  renderChatContacts();
+  drawChat();
+
+  $("chatLayout").classList.add("chat-mobile-open");
 }
 
 function drawChat() {
-  const messages=S.msgs[S.chat];
+  const c=candidateById(S.chat);
+  const valid=c&&S.act[c.id]==="match";
 
-  $("chatBox").innerHTML=messages.length
-    ?messages.map(x=>
-      `<div class="msg ${x.me?"me":""}"></div>`).join("")
-    :'<div class="empty">Eşleştiniz! İlk mesajı sen yaz.</div>';
+  $("chatPanel").classList.toggle("hide",!valid);
 
-  [...$("chatBox").querySelectorAll(".msg")].forEach((el,i)=>{
-    el.textContent=messages[i].t;
+  if (!valid) return;
+
+  $("chatTitle").textContent=c.n;
+  $("chatSubtitle").textContent=
+    `%${S.scores[c.id]??0} film uyumu`;
+
+  $("chatAvatar").textContent=initials(c.n);
+
+  const box=$("chatBox");
+  box.replaceChildren();
+
+  const messages=chatMessages(c.id);
+
+  if (!messages.length) {
+    const empty=document.createElement("div");
+    empty.className="empty";
+    empty.textContent=
+      "Henüz konuşma yok. İlk mesajı sen gönder!";
+    box.append(empty);
+  }
+
+  messages.forEach(m=>{
+    const entry=document.createElement("div");
+    entry.className="chat-entry"+(m.me?" mine":"");
+
+    const bubble=document.createElement("div");
+    bubble.className="chat-bubble";
+    bubble.textContent=m.t;
+
+    const date=document.createElement("span");
+    date.className="chat-message-date";
+    date.textContent=messageTime(m.at);
+
+    entry.append(bubble,date);
+    box.append(entry);
   });
 
-  $("chatBox").scrollTop=1e6;
+  const sent=messages.filter(m=>m.me).length;
+  const remaining=Math.max(0,CHAT_LIMIT-sent);
+
+  $("chatQuota").textContent=
+    `${remaining} / ${CHAT_LIMIT}`;
+
+  $("chatQuotaFill").style.width=
+    `${remaining/CHAT_LIMIT*100}%`;
+
+  $("chatIn").disabled=remaining===0;
+  $("chatSend").disabled=remaining===0;
+
+  $("chatIn").placeholder=remaining
+    ?"Mesaj yaz..."
+    :"Mesaj hakkın doldu";
+
+  box.scrollTop=box.scrollHeight;
 }
 
 function send() {
   const text=$("chatIn").value.trim();
-  if (!text) return;
+  const c=candidateById(S.chat);
 
-  S.msgs[S.chat].push({me:1,t:text});
+  if (!c || S.act[c.id]!=="match" || !text) return;
+
+  const messages=chatMessages(c.id);
+
+  if (messages.filter(m=>m.me).length>=CHAT_LIMIT) {
+    toast("Bu eşleşmede mesaj hakkın doldu.");
+    return;
+  }
+
+  messages.push({
+    me:1,
+    t:text,
+    at:new Date().toISOString()
+  });
+
   $("chatIn").value="";
+
+  saveDemoChats();
+  renderChatContacts();
   drawChat();
 }
 
 $("chatSend").onclick=send;
+
 $("chatIn").onkeydown=e=>{
-  if (e.key==="Enter") send();
+  if (e.key==="Enter") {
+    e.preventDefault();
+    send();
+  }
 };
 
 $("chatBack").onclick=()=>{
   S.tab="esl";
+
+  $("chatLayout").classList.remove("chat-mobile-open");
+
   show("sApp");
   changeMainPage("matches");
 };
 
+$("chatMobileBack").onclick=()=>{
+  $("chatLayout").classList.remove("chat-mobile-open");
+};
+
+$("chatProfile").onclick=()=>{
+  openMatchProfile(S.chat);
+};
+
+
+// ==========================================
+// KARŞI TARAFIN PROFİLİ
+// ==========================================
+
+function closeMatchProfile() {
+  $("matchProfileModal").classList.add("hide");
+  document.body.classList.remove("rating-modal-open");
+
+  selectedProfileId=null;
+
+  if (chatFocusBeforeModal?.isConnected) {
+    chatFocusBeforeModal.focus();
+  }
+}
+
+function openMatchProfile(id) {
+  const c=candidateById(id);
+
+  if (!c || S.act[c.id]!=="match") return;
+
+  selectedProfileId=Number(id);
+  chatFocusBeforeModal=document.activeElement;
+
+  const body=$("matchProfileBody");
+  body.replaceChildren();
+
+  const person=document.createElement("div");
+  person.className="match-person-line";
+
+  const avatar=document.createElement("div");
+  avatar.className="chat-avatar";
+  avatar.textContent=initials(c.n);
+
+  const details=document.createElement("div");
+
+  const name=document.createElement("strong");
+  name.textContent=c.n;
+
+  const about=document.createElement("p");
+  about.textContent=`${c.a} yaş · ${c.c}`;
+
+  details.append(name,about);
+  person.append(avatar,details);
+
+  const score=document.createElement("div");
+  score.className="match-profile-score";
+  score.textContent=
+    `Film uyumu: %${S.scores[c.id]??0} (temsili)`;
+
+  const favorites=document.createElement("div");
+  favorites.className="match-profile-placeholder";
+  favorites.innerHTML=`
+    <strong>❤️ Favori 4 film</strong>
+    <p>Gerçek kullanıcı favorileri Supabase bağlantısı
+    sonrası burada gösterilecek.</p>
+  `;
+
+  const common=document.createElement("div");
+  common.className="match-profile-placeholder";
+  common.innerHTML=`
+    <strong>⭐ Ortak sevilen filmler</strong>
+    <p>Gerçek kullanıcı film puanları bağlandığında
+    hesaplanacak.</p>
+  `;
+
+  body.append(person,score,favorites,common);
+
+  $("matchProfileModal").classList.remove("hide");
+  document.body.classList.add("rating-modal-open");
+
+  $("matchProfileClose").focus();
+}
+
+$("matchProfileClose").onclick=closeMatchProfile;
+$("matchProfileBackdrop").onclick=closeMatchProfile;
+
+$("matchProfileChat").onclick=()=>{
+  const id=selectedProfileId;
+  closeMatchProfile();
+
+  if (id!==null) openChat(id);
+};
+
+
+// ==========================================
+// EŞLEŞMEYİ SİL
+// ==========================================
+
+function closeUnmatchModal() {
+  $("unmatchModal").classList.add("hide");
+  document.body.classList.remove("rating-modal-open");
+
+  unmatchTargetId=null;
+
+  if (chatFocusBeforeModal?.isConnected) {
+    chatFocusBeforeModal.focus();
+  }
+}
+
+function openUnmatchModal(id) {
+  const c=candidateById(id);
+
+  if (!c || S.act[c.id]!=="match") return;
+
+  unmatchTargetId=Number(id);
+  chatFocusBeforeModal=document.activeElement;
+
+  $("unmatchMessage").textContent=
+    `${c.n} ile eşleşmeni kaldırmak istiyor musun? `+
+    "Bu demo işleminde konuşma listenden kaldırılacak.";
+
+  $("unmatchModal").classList.remove("hide");
+  document.body.classList.add("rating-modal-open");
+
+  $("unmatchCancel").focus();
+}
+
+$("unmatchCancel").onclick=closeUnmatchModal;
+$("unmatchBackdrop").onclick=closeUnmatchModal;
+
+$("unmatchConfirm").onclick=()=>{
+  if (unmatchTargetId===null) return;
+
+  const id=unmatchTargetId;
+
+  S.act[id]="unmatched";
+
+  if (Number(S.chat)===id) {
+    S.chat=matchedCandidates()[0]?.id??null;
+  }
+
+  saveDemoChats();
+  closeUnmatchModal();
+
+  renderApp();
+  renderChatContacts();
+  drawChat();
+
+  toast("Eşleşme kaldırıldı (demo).");
+};
+
+document.addEventListener("keydown",e=>{
+  if (e.key!=="Escape") return;
+
+  if (!$("matchProfileModal").classList.contains("hide")) {
+    closeMatchProfile();
+  }
+
+  if (!$("unmatchModal").classList.contains("hide")) {
+    closeUnmatchModal();
+  }
+});
+
+
+// ==========================================
 // ANA MENÜ
+// ==========================================
 
 function changeMainPage(page) {
   S.page=page;
 
   ["matches","votes","profile"].forEach(name=>{
     const cap=name[0].toUpperCase()+name.slice(1);
+
     $("page"+cap).classList.toggle("hide",page!==name);
     $("menu"+cap).classList.toggle("active",page===name);
   });
@@ -633,15 +1083,20 @@ $("menuProfile").onclick=()=>changeMainPage("profile");
 
 function continueVoting() {
   S.mode="more";
+
   const next=S.order.findIndex(id=>S.rt[id]===undefined);
   S.pos=next<0?0:next;
+
   show("sVote");
   renderFilm();
 }
 
 $("voteMore").onclick=continueVoting;
 
+
+// ==========================================
 // OYLAMALARIM
+// ==========================================
 
 function renderVoteHistory() {
   const container=$("voteHistory");
@@ -661,10 +1116,13 @@ function renderVoteHistory() {
 
   if (sort==="high")
     movies.sort((a,b)=>Number(S.rt[b.id])-Number(S.rt[a.id]));
+
   if (sort==="low")
     movies.sort((a,b)=>Number(S.rt[a.id])-Number(S.rt[b.id]));
+
   if (sort==="az")
     movies.sort((a,b)=>a.t.localeCompare(b.t,"tr"));
+
   if (sort==="za")
     movies.sort((a,b)=>b.t.localeCompare(a.t,"tr"));
 
@@ -712,6 +1170,7 @@ function renderVoteHistory() {
     edit.type="button";
     edit.className="vote-edit";
     edit.textContent="✏️ Puanı düzenle";
+
     edit.onclick=()=>openRatingModal(f.id);
 
     info.append(title,year,stars,edit);
@@ -725,7 +1184,10 @@ function renderVoteHistory() {
 $("voteFilter").onchange=renderVoteHistory;
 $("voteSort").onchange=renderVoteHistory;
 
+
+// ==========================================
 // PUAN DÜZENLEME
+// ==========================================
 
 let editingMovieId=null;
 let editingRating=null;
@@ -734,6 +1196,7 @@ let ratingPreviousFocus=null;
 
 function selectModalRating(value) {
   if (ratingSaving) return;
+
   editingRating=value;
 
   $("ratingChoices").querySelectorAll("button").forEach(button=>{
@@ -754,8 +1217,11 @@ function openRatingModal(movieId) {
   ratingPreviousFocus=document.activeElement;
 
   $("ratingModalTitle").textContent=movie.t;
+
   $("ratingModalMeta").textContent=[
-    movie.y,movie.g,movie.d?movie.d+" dk":""
+    movie.y,
+    movie.g,
+    movie.d?movie.d+" dk":""
   ].filter(Boolean).join(" · ");
 
   $("ratingCurrent").textContent=
@@ -794,8 +1260,10 @@ function openRatingModal(movieId) {
 
 function closeRatingModal() {
   if (ratingSaving) return;
+
   $("ratingModal").classList.add("hide");
   document.body.classList.remove("rating-modal-open");
+
   editingMovieId=null;
   editingRating=null;
 
@@ -821,13 +1289,15 @@ $("ratingSave").onclick=async()=>{
   }
 
   ratingSaving=true;
+
   const button=$("ratingSave");
   button.disabled=true;
   button.textContent="Kaydediliyor...";
 
   try {
     const saved=await saveMovieRating(
-      editingMovieId,editingRating);
+      editingMovieId,editingRating
+    );
 
     if (!saved) {
       $("ratingError").textContent="Puan kaydedilemedi.";
@@ -836,19 +1306,23 @@ $("ratingSave").onclick=async()=>{
 
     S.rt[editingMovieId]=editingRating;
     ratingSaving=false;
+
     closeRatingModal();
     renderVoteHistory();
 
     const valid=validFavorites();
+
     if (valid.length!==favoriteIds.length) {
       favoriteIds=valid;
       storeFavorites();
     }
 
     toast("Film puanın güncellendi.");
+
   } catch(error) {
     console.error("Rating update failed:",error);
     $("ratingError").textContent="Puan güncellenemedi.";
+
   } finally {
     ratingSaving=false;
     button.disabled=false;
@@ -856,7 +1330,10 @@ $("ratingSave").onclick=async()=>{
   }
 };
 
+
+// ==========================================
 // SUPABASE PUAN KAYDI
+// ==========================================
 
 async function saveMovieRating(movieId,rating) {
   try {
@@ -879,13 +1356,17 @@ async function saveMovieRating(movieId,rating) {
     }
 
     return true;
+
   } catch(error) {
     console.error("Rating save failed:",error);
     return false;
   }
 }
 
+
+// ==========================================
 // PROFİL VE FAVORİLER
+// ==========================================
 
 let profileEditing=false;
 let favoriteIds=[];
@@ -902,11 +1383,13 @@ function loadFavoritesForUser(userId) {
 
   try {
     const stored=JSON.parse(
-      localStorage.getItem(favoriteStorageKey())||"[]");
+      localStorage.getItem(favoriteStorageKey())||"[]"
+    );
 
     favoriteIds=Array.isArray(stored)
       ?stored.slice(0,4).map(String)
       :[];
+
   } catch(error) {
     favoriteIds=[];
   }
@@ -916,8 +1399,10 @@ function loadFavoritesForUser(userId) {
 
 function storeFavorites() {
   const key=favoriteStorageKey();
-  if (key)
+
+  if (key) {
     localStorage.setItem(key,JSON.stringify(favoriteIds));
+  }
 }
 
 function validFavorites() {
@@ -925,7 +1410,9 @@ function validFavorites() {
     FILMS.some(f=>
       String(f.id)===id &&
       Number(S.rt[f.id])>=1 &&
-      Number(S.rt[f.id])<=5));
+      Number(S.rt[f.id])<=5
+    )
+  );
 }
 
 function moviePosterElement(f) {
@@ -950,15 +1437,18 @@ function renderFavoriteGrid() {
   grid.replaceChildren();
 
   const valid=validFavorites();
+
   $("favoriteCount").textContent=`${valid.length} / 4 seçildi`;
 
   for (let i=0;i<4;i++) {
     const slot=document.createElement("div");
     slot.className="favorite-slot";
+
     const id=valid[i];
 
     if (id!==undefined) {
       const movie=FILMS.find(f=>String(f.id)===id);
+
       slot.append(moviePosterElement(movie));
 
       const name=document.createElement("div");
@@ -969,8 +1459,11 @@ function renderFavoriteGrid() {
       remove.type="button";
       remove.className="favorite-remove";
       remove.textContent="×";
-      remove.setAttribute("aria-label",
-        movie.t+" favorilerden çıkar");
+
+      remove.setAttribute(
+        "aria-label",
+        movie.t+" favorilerden çıkar"
+      );
 
       remove.onclick=()=>{
         favoriteIds=favoriteIds.filter(item=>item!==id);
@@ -979,12 +1472,15 @@ function renderFavoriteGrid() {
       };
 
       slot.append(remove,name);
+
     } else {
       const add=document.createElement("button");
       add.type="button";
       add.className="favorite-add";
+
       add.innerHTML="<strong>+</strong><span>Film ekle</span>";
       add.onclick=openFavoritePicker;
+
       slot.append(add);
     }
 
@@ -1005,10 +1501,12 @@ function renderProfileStats() {
     average===null?"—":average.toFixed(1);
 
   const counts=[5,4,3,2,1].map(r=>
-    values.filter(v=>v===r).length);
+    values.filter(v=>v===r).length
+  );
 
   const max=Math.max(1,...counts);
   const chart=$("profileChart");
+
   chart.replaceChildren();
 
   counts.forEach((count,i)=>{
@@ -1037,8 +1535,13 @@ function renderProfileStats() {
 function setProfileEditing(enabled) {
   profileEditing=enabled;
 
-  ["profileName","profileSurname","profileAge",
-   "profileGender","profileCity"].forEach(id=>{
+  [
+    "profileName",
+    "profileSurname",
+    "profileAge",
+    "profileGender",
+    "profileCity"
+  ].forEach(id=>{
     $(id).disabled=!enabled;
   });
 
@@ -1057,6 +1560,7 @@ function renderProfile() {
   $("profileCity").value=S.p.sehir||"";
 
   $("profileError").textContent="";
+
   setProfileEditing(false);
   renderProfileStats();
   renderFavoriteGrid();
@@ -1065,55 +1569,57 @@ function renderProfile() {
 $("editProfile").onclick=()=>setProfileEditing(true);
 $("cancelProfile").onclick=renderProfile;
 
+
+// ==========================================
 // FAVORİ SEÇME PENCERESİ
+// ==========================================
 
 let favoritePickerFocus=null;
 
-
 function renderFavoritePicker() {
-  const picker = $("favoritePicker");
+  const picker=$("favoritePicker");
   picker.replaceChildren();
 
-  const searchText = $("favoriteSearch").value
+  const searchText=$("favoriteSearch").value
     .trim()
     .toLocaleLowerCase("tr");
 
-  const selected = validFavorites();
+  const selected=validFavorites();
 
-  const options = FILMS.filter(f =>
-    Number(S.rt[f.id]) >= 1 &&
-    Number(S.rt[f.id]) <= 5 &&
+  const options=FILMS.filter(f=>
+    Number(S.rt[f.id])>=1 &&
+    Number(S.rt[f.id])<=5 &&
     !selected.includes(String(f.id)) &&
     f.t.toLocaleLowerCase("tr").includes(searchText)
   );
 
   if (!options.length) {
-    const empty = document.createElement("div");
-    empty.className = "empty";
+    const empty=document.createElement("div");
+    empty.className="empty";
 
-    empty.textContent = searchText
-      ? "Aradığın film puanladığın filmler arasında bulunamadı."
-      : "Eklenebilecek başka puanlanmış film yok.";
+    empty.textContent=searchText
+      ?"Aradığın film puanladığın filmler arasında bulunamadı."
+      :"Eklenebilecek başka puanlanmış film yok.";
 
     picker.append(empty);
     return;
   }
 
-  options.forEach(f => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "favorite-picker-tile";
+  options.forEach(f=>{
+    const button=document.createElement("button");
+    button.type="button";
+    button.className="favorite-picker-tile";
 
-    const label = document.createElement("span");
-    label.textContent = f.t;
+    const label=document.createElement("span");
+    label.textContent=f.t;
 
-    button.append(moviePosterElement(f), label);
+    button.append(moviePosterElement(f),label);
 
-    button.onclick = () => {
-      if (validFavorites().length >= 4) return;
+    button.onclick=()=>{
+      if (validFavorites().length>=4) return;
 
       favoriteIds.push(String(f.id));
-      favoriteIds = [...new Set(favoriteIds)];
+      favoriteIds=[...new Set(favoriteIds)];
 
       storeFavorites();
       closeFavoritePicker();
@@ -1125,11 +1631,11 @@ function renderFavoritePicker() {
 }
 
 function openFavoritePicker() {
-  if (validFavorites().length >= 4) return;
+  if (validFavorites().length>=4) return;
 
-  favoritePickerFocus = document.activeElement;
+  favoritePickerFocus=document.activeElement;
 
-  $("favoriteSearch").value = "";
+  $("favoriteSearch").value="";
   $("favoriteModal").classList.remove("hide");
   document.body.classList.add("rating-modal-open");
 
@@ -1141,11 +1647,12 @@ function closeFavoritePicker() {
   $("favoriteModal").classList.add("hide");
   document.body.classList.remove("rating-modal-open");
 
-  if (favoritePickerFocus?.isConnected)
+  if (favoritePickerFocus?.isConnected) {
     favoritePickerFocus.focus();
+  }
 }
 
-$("favoriteSearch").oninput = renderFavoritePicker;
+$("favoriteSearch").oninput=renderFavoritePicker;
 $("favoriteClose").onclick=closeFavoritePicker;
 $("favoriteCancel").onclick=closeFavoritePicker;
 $("favoriteBackdrop").onclick=closeFavoritePicker;
@@ -1154,7 +1661,10 @@ $("favoriteModal").addEventListener("keydown",e=>{
   if (e.key==="Escape") closeFavoritePicker();
 });
 
-// PROFİL BİLGİSİ KAYDET
+
+// ==========================================
+// PROFİL BİLGİSİ KAYDETME
+// ==========================================
 
 $("saveProfile").onclick=async()=>{
   const updated={
@@ -1165,10 +1675,15 @@ $("saveProfile").onclick=async()=>{
     sehir:$("profileCity").value.trim()
   };
 
-  if (!updated.ad||!updated.soyad||
-      !updated.sehir||!updated.cins||
-      !Number.isInteger(updated.yas)||
-      updated.yas<18||updated.yas>99) {
+  if (
+    !updated.ad ||
+    !updated.soyad ||
+    !updated.sehir ||
+    !updated.cins ||
+    !Number.isInteger(updated.yas) ||
+    updated.yas<18 ||
+    updated.yas>99
+  ) {
     $("profileError").textContent=
       "Lütfen geçerli bilgileri gir.";
     return;
@@ -1182,8 +1697,9 @@ $("saveProfile").onclick=async()=>{
     const {data,error:authError}=
       await supabaseClient.auth.getUser();
 
-    if (authError||!data?.user)
+    if (authError||!data?.user) {
       throw new Error("Oturum bulunamadı.");
+    }
 
     const {error}=await supabaseClient
       .from("profiles")
@@ -1199,19 +1715,26 @@ $("saveProfile").onclick=async()=>{
     if (error) throw error;
 
     S.p=updated;
+
     $("hello").textContent=`Merhaba ${S.p.ad} 👋`;
     setProfileEditing(false);
     toast("Profil bilgilerin kaydedildi.");
+
   } catch(error) {
     console.error("Profile update failed:",error);
+
     $("profileError").textContent=
       "Profil kaydedilemedi. Supabase izinlerini kontrol edin.";
+
   } finally {
     button.disabled=false;
   }
 };
 
+
+// ==========================================
 // OTURUM KONTROLÜ
+// ==========================================
 
 async function checkAuthSession() {
   const {data,error}=await supabaseClient.auth.getUser();
@@ -1251,6 +1774,7 @@ async function checkAuthSession() {
     S.pos=0;
 
     show("sInfo");
+
     toast("Hoş geldin! Profilini oluştur ve 10 film puanla.");
     return;
   }
@@ -1271,12 +1795,15 @@ async function checkAuthSession() {
 
       await submitOnboarding();
 
-      if (localStorage.getItem("filmBuddyPendingOnboarding"))
+      if (localStorage.getItem("filmBuddyPendingOnboarding")) {
         return;
+      }
+
     } catch(error) {
       console.error("Onboarding error:",error);
       return;
     }
+
   } else {
     const {data:profile,error:profileError}=
       await supabaseClient
@@ -1302,7 +1829,8 @@ async function checkAuthSession() {
     }
 
     const ratedCount=ratings.filter(
-      item=>item.rating>=1&&item.rating<=5).length;
+      item=>item.rating>=1&&item.rating<=5
+    ).length;
 
     if (ratedCount<10) {
       console.error("User has fewer than 10 rated movies.");
@@ -1326,20 +1854,27 @@ async function checkAuthSession() {
   }
 
   loadFavoritesForUser(user.id);
+  loadDemoChats(user.id);
+
   S.mode="more";
   S.tab="adaylar";
 
   calc();
+
   show("sApp");
   changeMainPage("matches");
 }
 
+
+// ==========================================
 // UYGULAMAYI BAŞLAT
+// ==========================================
 
 async function startApp() {
   try {
     await initializeMovies();
     await checkAuthSession();
+
   } catch(error) {
     console.error("App initialization failed:",error);
     toast("Uygulama başlatılamadı.");

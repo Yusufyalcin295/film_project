@@ -1005,3 +1005,399 @@ body.rating-modal-open { overflow:hidden; }
   max-height: 48vh;
   overflow-y: auto;
 }
+
+/* =========================================
+   FILMMATCH - SOHBET SAYFASI DÜZELTMESİ
+========================================= */
+
+/* Sohbet sayfası genişliği */
+#sChat {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* İki sütunlu sohbet yerleşimi */
+#sChat .chat-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  width: 100%;
+  height: 540px;
+  margin-top: 18px;
+  overflow: hidden;
+  border: 1px solid var(--bd);
+  border-radius: 16px;
+  background: var(--card);
+}
+
+/* SOL TARAF */
+#sChat .chat-sidebar {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border-right: 1px solid var(--bd);
+  background: var(--tab);
+}
+
+#sChat .chat-sidebar-head {
+  padding: 15px;
+  border-bottom: 1px solid var(--bd);
+}
+
+#sChat .chat-sidebar-head p {
+  margin: 5px 0 0;
+  font-size: 12px;
+}
+
+#sChat .chat-contacts {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 7px;
+}
+
+#sChat .chat-contact {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 11px 8px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  margin-bottom: 5px;
+  background: transparent;
+  text-align: left;
+}
+
+#sChat .chat-contact.active {
+  background: var(--card);
+  border-color: var(--bd);
+}
+
+#sChat .chat-avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #7355dc;
+  color: white;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+#sChat .chat-contact-details {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  gap: 4px;
+}
+
+#sChat .chat-contact-details strong,
+#sChat .chat-contact-details small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#sChat .chat-contact-details small,
+#sChat .chat-contact-date {
+  color: var(--mut);
+  font-size: 11px;
+}
+
+/* SAĞ TARAF */
+#sChat .chat-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--card);
+}
+
+#sChat .chat-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-bottom: 1px solid var(--bd);
+}
+
+#sChat .chat-person-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+#sChat .chat-person-info small {
+  color: var(--mut);
+  font-size: 12px;
+}
+
+#sChat #chatProfile {
+  padding: 9px;
+  font-size: 12px;
+}
+
+#sChat .chat-mobile-back {
+  display: none;
+}
+
+/* MESAJ ALANI */
+#sChat #chatBox {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  height: auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 15px;
+}
+
+#sChat .chat-entry {
+  display: flex;
+  flex-direction: column;
+  align-self: flex-start;
+  gap: 4px;
+  max-width: 80%;
+}
+
+#sChat .chat-entry.mine {
+  align-self: flex-end;
+}
+
+#sChat .chat-bubble {
+  padding: 10px 12px;
+  background: var(--tab);
+  border-radius: 12px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+#sChat .chat-entry.mine .chat-bubble {
+  background: var(--ac);
+  color: var(--acx);
+}
+
+#sChat .chat-message-date {
+  color: var(--mut);
+  font-size: 10px;
+}
+
+/* ALT MESAJ GÖNDERME */
+#sChat .chat-compose {
+  flex-shrink: 0;
+  border-top: 1px solid var(--bd);
+  padding: 12px;
+}
+
+#sChat .chat-quota {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--mut);
+}
+
+#sChat .chat-quota-track {
+  height: 5px;
+  margin: 8px 0 10px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--tab);
+}
+
+#sChat #chatQuotaFill {
+  height: 100%;
+  background: var(--ac);
+}
+
+#sChat .chat-send-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#sChat #chatIn {
+  flex: 1;
+  min-width: 0;
+}
+
+#sChat #chatSend {
+  flex-shrink: 0;
+}
+
+#sChat .chat-demo-note {
+  font-size: 10px;
+  margin: 7px 0 0;
+}
+
+/* MOBİL */
+@media (max-width: 620px) {
+  #sChat .chat-layout {
+    position: relative;
+    display: block;
+    height: 520px;
+  }
+
+  #sChat .chat-sidebar,
+  #sChat .chat-panel {
+    position: absolute;
+    inset: 0;
+  }
+
+  #sChat .chat-sidebar {
+    border-right: 0;
+  }
+
+  #sChat .chat-panel {
+    display: none;
+  }
+
+  #sChat .chat-layout.chat-mobile-open .chat-sidebar {
+    display: none;
+  }
+
+  #sChat .chat-layout.chat-mobile-open .chat-panel:not(.hide) {
+    display: flex;
+  }
+
+  #sChat .chat-mobile-back {
+    display: block;
+    border: 0;
+    background: transparent;
+    padding: 5px;
+  }
+}
+
+/* Eşleşmelerim kartlarındaki butonlar */
+
+.match-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.match-actions button {
+  min-width: 0;
+  padding: 10px 7px;
+  font-size: .82rem;
+  font-weight: 650;
+}
+
+.match-actions .match-danger {
+  grid-column: 1 / -1;
+  color: #cf5160;
+}
+
+/* Eşleşmeyi silme onayı */
+
+.match-danger-confirm {
+  color: white;
+  background: #b94054;
+  border-color: #b94054;
+}
+
+/* Karşı tarafın profil penceresi */
+
+.match-profile-dialog {
+  width: min(100%, 440px);
+}
+
+.match-modal-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.match-person-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.match-profile-score,
+.match-profile-placeholder {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  background: var(--tab);
+}
+
+.match-modal-chat {
+  width: 100%;
+  margin-top: 15px;
+}
+
+
+/* ========================================
+   EŞLEŞMELERİM - İKİ ANA ALT SEKME
+======================================== */
+
+.match-subtabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  background: var(--tab);
+  border-radius: 14px;
+  padding: 5px;
+  margin: 18px 0;
+}
+
+.match-subtabs button {
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--mut);
+  padding: 13px 8px;
+  font-weight: 700;
+  font-size: .95rem;
+  transition: background .2s;
+}
+
+.match-subtabs button.active {
+  background: var(--ac);
+  color: var(--acx);
+}
+
+.match-subtabs button:hover:not(.active) {
+  background: var(--card);
+}
+
+/* Sohbet artık Eşleşmelerim içinde */
+
+#chatsArea {
+  width: 100%;
+}
+
+#chatsArea #sChat {
+  width: 100%;
+  max-width: none;
+}
+
+#chatsArea .chat-layout {
+  margin-top: 14px;
+}
+
+/* Sohbete geçişte seçili sekme */
+
+#matchesArea,
+#chatsArea {
+  animation: fadeIn .2s ease-out;
+}
+
+@media (max-width: 620px) {
+  .match-subtabs button {
+    font-size: .85rem;
+    padding: 12px 5px;
+  }
+}

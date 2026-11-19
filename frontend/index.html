@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Film Zevkini Keşfet</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=20261119-final">
 </head>
 <body>
 <main>
@@ -177,7 +177,6 @@
         <h2>👤 Profilim</h2>
         <p>Film zevkin, favorilerin ve kişisel bilgilerin.</p>
 
-        <!-- İstatistikler -->
         <div class="profile-stats">
           <div class="profile-average card">
             <h3>Ortalama puanım</h3>
@@ -190,7 +189,6 @@
           </div>
         </div>
 
-        <!-- Favori dört film -->
         <div class="favorites-area">
           <div class="favorite-heading">
             <h3>❤️ Favori 4 filmim</h3>
@@ -206,7 +204,6 @@
           </p>
         </div>
 
-        <!-- Kullanıcı bilgileri -->
         <div class="card profile-card">
           <div class="profile-info-head">
             <h3>👤 Kişisel bilgilerim</h3>
@@ -307,37 +304,140 @@
                 aria-label="Kapat">×</button>
       </div>
       <p>Puanladığın filmlerden birini seç.</p>
-        <div class="favorite-search-box">
-            <input
-            type="search"
-            id="favoriteSearch"
-            placeholder="Film adı yaz... (örn. Interstellar)"
-            autocomplete="off"
-            aria-label="Favori film ara"
-            >
-        </div>
+      <div class="favorite-search-box">
+        <input
+          type="search"
+          id="favoriteSearch"
+          placeholder="Film adı yaz... (örn. Interstellar)"
+          autocomplete="off"
+          aria-label="Favori film ara"
+        >
+      </div>
       <div class="favorite-picker" id="favoritePicker"></div>
       <button type="button" id="favoriteCancel"
               class="favorite-cancel">Vazgeç</button>
     </div>
   </div>
 
-  <!-- Sohbet -->
-  <section id="sChat" class="hide narrow">
-    <div class="top">
-      <h2 id="chatTitle"></h2>
-      <button id="chatBack">← Eşleşmeler</button>
-    </div>
-    <div class="card" style="padding:0;margin-top:10px">
-      <div id="chatBox"></div>
-    </div>
-    <div class="row">
-      <input id="chatIn" placeholder="Mesaj yaz..." maxlength="500">
-      <button class="pri" id="chatSend" style="flex:none">
-        Gönder
-      </button>
+  <!-- Sohbetlerim: ayrı sayfa -->
+  <section id="sChat" class="hide">
+    <button type="button" id="chatBack" class="chat-page-back">
+      ← Eşleşmelerime dön
+    </button>
+
+    <h2>💬 Sohbetlerim</h2>
+    <p>
+      Eşleştiğin kişilerle konuşmalarına kaldığın yerden devam et.
+    </p>
+
+    <div id="chatLayout" class="chat-layout">
+      <!-- Sol panel -->
+      <aside class="chat-sidebar">
+        <div class="chat-sidebar-head">
+          <strong>Konuşmalarım</strong>
+          <p>Konuşmayı açmak için kişiyi seç.</p>
+        </div>
+        <div id="chatContacts" class="chat-contacts"></div>
+      </aside>
+
+      <!-- Sağ panel -->
+      <div id="chatPanel" class="chat-panel">
+        <div class="chat-panel-head">
+          <button
+            id="chatMobileBack"
+            class="chat-mobile-back"
+            type="button"
+            aria-label="Konuşmalara dön">
+            ←
+          </button>
+
+          <div class="chat-avatar" id="chatAvatar">FM</div>
+
+          <div class="chat-person-info">
+            <strong id="chatTitle"></strong>
+            <small id="chatSubtitle"></small>
+          </div>
+
+          <button id="chatProfile" type="button">
+            👤 Profili Gör
+          </button>
+        </div>
+
+        <div id="chatBox" class="chat-messages"></div>
+
+        <div class="chat-compose">
+          <div class="chat-quota">
+            <span>💬 Kalan mesaj hakkın</span>
+            <strong id="chatQuota">20 / 20</strong>
+          </div>
+
+          <div class="chat-quota-track">
+            <div id="chatQuotaFill"></div>
+          </div>
+
+          <div class="chat-send-row">
+            <input
+              id="chatIn"
+              type="text"
+              placeholder="Mesaj yaz..."
+              maxlength="300"
+              autocomplete="off">
+            <button class="pri" id="chatSend" type="button">
+              Gönder
+            </button>
+          </div>
+
+          <p class="chat-demo-note">
+            Demo sohbet: Mesajlar yalnızca bu tarayıcıda saklanır.
+          </p>
+        </div>
+      </div>
     </div>
   </section>
+
+  <!-- Eşleşilen kişinin profili -->
+  <div id="matchProfileModal"
+       class="rating-modal hide"
+       role="dialog"
+       aria-modal="true"
+       aria-labelledby="matchProfileTitle">
+    <div id="matchProfileBackdrop" class="rating-backdrop"></div>
+    <div class="rating-dialog match-profile-dialog">
+      <div class="match-modal-top">
+        <h2 id="matchProfileTitle">Kullanıcı Profili</h2>
+        <button id="matchProfileClose" type="button"
+                aria-label="Kapat">×</button>
+      </div>
+      <div id="matchProfileBody"></div>
+      <button class="pri match-modal-chat"
+              id="matchProfileChat" type="button">
+        💬 Sohbete Git
+      </button>
+    </div>
+  </div>
+
+  <!-- Eşleşme silme onayı -->
+  <div id="unmatchModal"
+       class="rating-modal hide"
+       role="dialog"
+       aria-modal="true"
+       aria-labelledby="unmatchTitle">
+    <div id="unmatchBackdrop" class="rating-backdrop"></div>
+    <div class="rating-dialog match-profile-dialog">
+      <h2 id="unmatchTitle">Eşleşmeyi sil</h2>
+      <p id="unmatchMessage"></p>
+      <div class="rating-actions">
+        <button id="unmatchCancel" type="button">
+          Vazgeç
+        </button>
+        <button id="unmatchConfirm"
+                class="match-danger-confirm"
+                type="button">
+          Eşleşmeyi Sil
+        </button>
+      </div>
+    </div>
+  </div>
 
 </main>
 
@@ -346,7 +446,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabaseClient.js"></script>
 <script src="js/data.js"></script>
-<script src="js/app.js"></script>
+<script src="js/app.js?v=20261119-final"></script>
+<script src="js/match-tabs.js"></script>
 
 </body>
 </html>
